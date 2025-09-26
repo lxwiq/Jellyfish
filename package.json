@@ -17,6 +17,7 @@
     "@tauri-apps/plugin-opener": "^2"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.2.4",
     "@lucide/svelte": "^0.544.0",
     "@sveltejs/adapter-static": "^3.0.6",
     "@sveltejs/kit": "^2.9.0",
