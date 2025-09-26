@@ -13,11 +13,14 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@jellyfin/sdk": "^0.11.0",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/plugin-opener": "^2",
+    "mode-watcher": "^0.4.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.4",
+    "@internationalized/date": "^3.9.0",
     "@lucide/svelte": "^0.544.0",
     "@sveltejs/adapter-static": "^3.0.6",
     "@sveltejs/kit": "^2.9.0",
@@ -26,7 +29,9 @@
     "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.0.0",
     "@tauri-apps/cli": "^2",
+    "bits-ui": "^2.11.4",
     "clsx": "^2.1.1",
+    "embla-carousel-svelte": "^8.6.0",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "tailwind-merge": "^3.3.1",
