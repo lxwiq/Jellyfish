@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TopBar from "$lib/components/TopBar.svelte";
+
 
   import { ArrowLeft } from "@lucide/svelte";
   import { itemPosterUrl, placeholderPosterUrl, posterSrcset, posterSizes } from "$lib/core/images";
@@ -9,7 +9,7 @@
   const imgFor = (i: any) => itemPosterUrl(i, { width: 300, height: 450 });
 </script>
 
-<TopBar />
+
 
 <main class="mx-auto max-w-7xl px-3 sm:px-4 py-4">
   <section class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">

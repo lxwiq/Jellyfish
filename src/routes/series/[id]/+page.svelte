@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TopBar from "$lib/components/TopBar.svelte";
+
   import { ArrowLeft, Star } from "@lucide/svelte";
   import type { ItemDetail } from "$lib/core/api";
   import { itemPosterUrl, placeholderPosterUrl, posterSrcset, posterSizes } from "$lib/core/images";
@@ -20,7 +20,7 @@
     <p class="mt-6 text-sm opacity-80">Contenu introuvable.</p>
   </main>
 {:else}
-  <TopBar showBack={true} title="Séries" />
+
 
   <main class="mx-auto max-w-4xl px-3 sm:px-4 py-4 space-y-6">
     <!-- Hero poster -->

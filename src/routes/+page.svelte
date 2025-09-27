@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TopBar from "$lib/components/TopBar.svelte";
+
 
   import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "$lib/components/ui/carousel/index.js";
 
@@ -14,7 +14,7 @@
   }
 </script>
 
-<TopBar />
+
 
 
 

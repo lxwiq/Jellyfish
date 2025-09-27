@@ -1,5 +1,5 @@
 <script lang="ts">
-  import TopBar from "$lib/components/TopBar.svelte";
+
   import type { ItemDetail } from "$lib/core/api";
   import { videoStreamUrl } from "$lib/core/api";
   import { itemPosterUrl } from "$lib/core/images";
@@ -12,7 +12,7 @@
   const poster = item ? itemPosterUrl(item, { width: 600, height: 900 }) : "";
 </script>
 
-<TopBar showBack={true} title={item?.Name ?? "Lecture"} />
+
 
 <main class="mx-auto max-w-4xl px-3 sm:px-4 py-4 space-y-4">
   {#if item}

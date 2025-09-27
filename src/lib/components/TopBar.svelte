@@ -8,8 +8,9 @@
   const back = () => history.back();
 </script>
 
-<header class="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-  <div class="mx-auto max-w-7xl px-3 sm:px-4 h-14 flex items-center justify-between gap-3">
+<header class="sticky top-0 z-10 border-b bg-background sm:bg-background/80 sm:backdrop-blur sm:supports-[backdrop-filter]:bg-background/60 relative">
+  <div class="pointer-events-none absolute inset-x-0 -top-[env(safe-area-inset-top)] h-[env(safe-area-inset-top)] bg-background sm:hidden"></div>
+  <div class="mx-auto max-w-7xl px-3 sm:px-4 h-14 flex items-center justify-between gap-3 pt-[env(safe-area-inset-top)] sm:pt-0">
     <div class="flex items-center gap-2 min-w-0">
       {#if showBack}
         <button type="button" class="inline-flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted" onclick={back} aria-label="Retour">

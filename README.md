@@ -1,7 +1,19 @@
-# Tauri + SvelteKit + TypeScript
+![Jellyfish](public/jelly.png)
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+# Jellyfish
 
-## Recommended IDE Setup
+Jellyfish is a cross-platform media player for Jellyfin. It is built with [SvelteKit](https://kit.svelte.dev/) and [Tauri](https://tauri.app/).
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+## Development
+
+To run the app in development mode, run the following commands:
+
+Mobile:
+```bash
+npm run tauri
+```
+
+Desktop:
+```bash
+npm run dev
+```
