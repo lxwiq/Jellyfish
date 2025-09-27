@@ -1,17 +1,20 @@
 import type { PageLoad } from "./$types";
-import { getItem, getShowNextUp } from "$lib/core/api";
+export const ssr = false;
+
+import { getItem, getShowNextUp, getSeriesSeasons } from "$lib/core/api";
 
 export const load: PageLoad = async ({ fetch, params }) => {
   const id = params.id;
   try {
-    const [item, nextUp] = await Promise.all([
+    const [item, nextUp, seasons] = await Promise.all([
       getItem(id, fetch),
-      getShowNextUp(id, fetch)
+      getShowNextUp(id, fetch),
+      getSeriesSeasons(id, fetch)
     ]);
-    return { item, nextUp };
+    return { item, nextUp, seasons };
   } catch (e) {
     console.error("Failed to load item", id, e);
-    return { item: null, nextUp: null };
+    return { item: null, nextUp: null, seasons: [] };
   }
 };
 

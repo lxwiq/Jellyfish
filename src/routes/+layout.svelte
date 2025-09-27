@@ -5,8 +5,10 @@
     import { page } from "$app/stores";
 
     let { children } = $props();
-    const pathname = $derived($page.url.pathname);
-    const showBottomBar = $derived(pathname === '/' || pathname.startsWith('/films') || pathname.startsWith('/series') || pathname.startsWith('/search') || pathname.startsWith('/add'));
+    const rawPath = $derived(String($page.url.pathname));
+    const pathname = $derived(rawPath === '/index.html' ? '/' : rawPath);
+    // Show the bottom bar on all app pages except a few (player/auth screens)
+    const showBottomBar = $derived(!pathname.startsWith('/watch') && !pathname.startsWith('/login') && !pathname.startsWith('/host'));
 </script>
 
 <ModeWatcher defaultMode="dark" />

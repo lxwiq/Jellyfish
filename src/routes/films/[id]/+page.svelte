@@ -2,13 +2,18 @@
 
   import { ArrowLeft, Star } from "@lucide/svelte";
   import type { ItemDetail } from "$lib/core/api";
-  import { itemPosterUrl, placeholderPosterUrl, posterSrcset, posterSizes } from "$lib/core/images";
+  import { itemPosterUrl, placeholderPosterUrl, posterSrcset, posterSizes, backdropImageUrl } from "$lib/core/images";
   import { formatTicksToHMS, formatTicksToMinutes } from "$lib/core/time";
   let { data } = $props<{ data: { item: ItemDetail | null } }>();
   const item = data.item;
   const back = () => history.back();
   const poster = item ? itemPosterUrl(item, { width: 600, height: 900 }) : "";
   const posterSet = item ? posterSrcset(item, [200,300,450]) : "";
+  const heroBg = item ? (
+    (item as any).BackdropImageTags?.[0]
+      ? backdropImageUrl(item.Id, (item as any).BackdropImageTags[0], { width: 1600, height: 900, quality: 85 })
+      : backdropImageUrl(item.Id, undefined, { width: 1600, height: 900, quality: 85 })
+  ) : "";
 </script>
 
 {#if !item}
@@ -22,29 +27,29 @@
 
 
   <main class="mx-auto max-w-4xl px-3 sm:px-4 py-4 space-y-6">
-    <!-- Hero poster -->
-    <section>
-      <div class="relative w-full aspect-[2/3] sm:aspect-video overflow-hidden rounded-md">
-        <img src={poster} srcset={posterSet} sizes={posterSizes} alt={item.Name}
-             class="absolute inset-0 w-full h-full object-cover" loading="eager" decoding="async" fetchpriority="high"
-             onerror={(e) => ((e.currentTarget as HTMLImageElement).src = placeholderPosterUrl(600, 900, item.Name))} />
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/0"></div>
-        <div class="absolute bottom-0 left-0 right-0 p-3 sm:p-4 text-white">
-          <h2 class="text-lg sm:text-2xl font-semibold">{item.Name}</h2>
-          <div class="mt-1 text-xs sm:text-sm opacity-90">
-            {#if item.ProductionYear}{item.ProductionYear}{/if}
-            {#if item.RunTimeTicks}&nbsp;•&nbsp;{Math.round(item.RunTimeTicks/600000000)} min{/if}
-            {#if item.Genres?.length}&nbsp;•&nbsp;{item.Genres.slice(0,3).join(', ')}{/if}
-          </div>
+    <!-- Full-page blurred backdrop background -->
+    <section class="relative">
+      <div class="fixed inset-0 z-0 pointer-events-none">
+        <img src={heroBg || poster} srcset={heroBg ? undefined : posterSet} sizes={posterSizes} alt=""
+             class="w-full h-full object-cover blur-2xl scale-110 opacity-80" loading="eager" decoding="async" fetchpriority="high"
+             onerror={(e) => ((e.currentTarget as HTMLImageElement).src = placeholderPosterUrl(1600, 900, item.Name))} />
+        <div class="absolute inset-0 bg-background/70"></div>
+      </div>
+      <div class="relative z-10 px-3 sm:px-4 pt-4 sm:pt-6 text-white">
+        <h1 class="text-xl sm:text-3xl font-semibold">{item.Name}</h1>
+        <div class="mt-1 text-xs sm:text-sm opacity-90">
+          {#if item.ProductionYear}{item.ProductionYear}{/if}
+          {#if item.RunTimeTicks}&nbsp;•&nbsp;{Math.round(item.RunTimeTicks/600000000)} min{/if}
+          {#if item.Genres?.length}&nbsp;•&nbsp;{item.Genres.slice(0,3).join(', ')}{/if}
         </div>
       </div>
     </section>
 
     <!-- Compact extra info / actions -->
-    <section class="flex flex-col gap-3">
+    <section class="flex flex-col gap-3 text-white">
       <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm opacity-90">
         {#if item.OfficialRating}
-          <span class="px-2 py-0.5 rounded bg-muted border">{item.OfficialRating}</span>
+          <span class="px-2 py-0.5 rounded bg-white/10 border border-white/20">{item.OfficialRating}</span>
         {/if}
         {#if item.CommunityRating}
           <span class="inline-flex items-center gap-1"><Star size={14} class="text-yellow-500" /> {item.CommunityRating.toFixed(1)}</span>
@@ -61,7 +66,7 @@
         {:else}
           <a class="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm inline-flex items-center" href={`/watch/${item.Id}`}>Lire</a>
         {/if}
-        <button class="px-3 py-2 rounded-md border text-sm">Ajouter</button>
+        <button class="px-3 py-2 rounded-md border text-sm text-white border-white/40 hover:bg-white/10">Ajouter</button>
       </div>
     </section>
 

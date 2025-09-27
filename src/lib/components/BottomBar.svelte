@@ -13,9 +13,9 @@
   );
 </script>
 
-<nav class="fixed bottom-0 inset-x-0 z-20 border-t bg-background sm:bg-background/80 sm:backdrop-blur sm:supports-[backdrop-filter]:bg-background/60" aria-label="Navigation principale" data-testid="bottom-tabs">
+<nav class="fixed bottom-0 inset-x-0 z-20 border-t border-border/50 bg-background/95 backdrop-blur-md backdrop-saturate-100 supports-[backdrop-filter]:bg-background/95" aria-label="Navigation principale" data-testid="bottom-tabs">
   <!-- Paint the safe-area at the bottom (non-interactive) -->
-  <div class="pointer-events-none absolute inset-x-0 -bottom-[env(safe-area-inset-bottom)] h-[env(safe-area-inset-bottom)] bg-background sm:hidden"></div>
+  <div class="pointer-events-none absolute inset-x-0 -bottom-[env(safe-area-inset-bottom)] h-[env(safe-area-inset-bottom)] bg-background/95 supports-[backdrop-filter]:bg-background/95 sm:hidden"></div>
 
   <Tabs.Root value={tabValue} class="w-full pb-[env(safe-area-inset-bottom)] sm:pb-0">
     <Tabs.List class="w-full h-14 rounded-none border-0 shadow-none bg-transparent p-0 grid grid-cols-5 place-items-center">

@@ -162,7 +162,7 @@ export type ItemDetail = LibraryItem & {
 export async function getItem(id: string, fetchImpl: typeof fetch = fetch): Promise<ItemDetail> {
   const userId = assertUser();
   return apiGet<ItemDetail>(`/Users/${userId}/Items/${id}`, {
-    fields: 'Overview,RunTimeTicks,ProductionYear,ImageTags,PrimaryImageTag,Genres,BackdropImageTags,CommunityRating,OfficialRating,Studios,UserData',
+    Fields: 'Overview,RunTimeTicks,ProductionYear,ImageTags,PrimaryImageTag,Genres,BackdropImageTags,CommunityRating,OfficialRating,Studios,UserData',
     EnableUserData: true
   }, fetchImpl);
 }
@@ -177,13 +177,38 @@ export type EpisodeItem = ItemDetail & {
 
 export async function getShowNextUp(seriesId: string, fetchImpl: typeof fetch = fetch): Promise<EpisodeItem | null> {
   const userId = assertUser();
-  const res = await apiGet<ItemsResponse<EpisodeItem>>(`/Shows/${seriesId}/NextUp`, {
+  const res = await apiGet<ItemsResponse<EpisodeItem>>(`/Shows/NextUp`, {
     UserId: userId,
+    SeriesId: seriesId,
     Limit: 1,
     Fields: 'Overview,RunTimeTicks,ImageTags,PrimaryImageTag,CommunityRating,OfficialRating,UserData,ParentIndexNumber,IndexNumber'
   }, fetchImpl);
   return res?.Items?.[0] ?? null;
 }
+
+export type SeasonItem = LibraryItem & { IndexNumber?: number };
+
+export async function getSeriesSeasons(seriesId: string, fetchImpl: typeof fetch = fetch): Promise<SeasonItem[]> {
+  const userId = assertUser();
+  const res = await apiGet<ItemsResponse<SeasonItem>>(`/Shows/${seriesId}/Seasons`, {
+    UserId: userId,
+    Fields: 'ImageTags,PrimaryImageTag,IndexNumber'
+  }, fetchImpl);
+  return res?.Items ?? [];
+}
+
+export async function getSeasonEpisodes(seasonId: string, fetchImpl: typeof fetch = fetch): Promise<EpisodeItem[]> {
+  const userId = assertUser();
+  const res = await apiGet<ItemsResponse<EpisodeItem>>(`/Users/${userId}/Items`, {
+    ParentId: seasonId,
+    IncludeItemTypes: 'Episode',
+    SortBy: 'IndexNumber',
+    SortOrder: 'Ascending',
+    Fields: 'Overview,RunTimeTicks,ImageTags,PrimaryImageTag,UserData,ParentIndexNumber,IndexNumber,SeriesId,SeriesName'
+  }, fetchImpl);
+  return res?.Items ?? [];
+}
+
 
 export async function getNextUpEpisodes(limit = 20, fetchImpl: typeof fetch = fetch): Promise<EpisodeItem[]> {
   const userId = assertUser();
@@ -204,6 +229,44 @@ export async function getResumeItems(limit = 20, includeItemTypes: string, fetch
   }, fetchImpl);
   return res?.Items ?? [];
 }
+
+export type SortOrder = 'Ascending' | 'Descending';
+export type PagedResult<T> = { items: T[]; total: number };
+
+export async function queryLibrary(
+  includeItemTypes: 'Movie' | 'Series',
+  opts: { page: number; pageSize: number; sortBy?: string; sortOrder?: SortOrder; search?: string },
+  fetchImpl: typeof fetch = fetch
+): Promise<PagedResult<LibraryItem>> {
+  const userId = assertUser();
+  const startIndex = Math.max(0, (opts.page - 1) * opts.pageSize);
+  const res = await apiGet<ItemsResponse<LibraryItem>>(`/Users/${userId}/Items`, {
+    IncludeItemTypes: includeItemTypes,
+    Recursive: true,
+    SortBy: opts.sortBy ?? 'DateCreated',
+    SortOrder: opts.sortOrder ?? 'Descending',
+    StartIndex: startIndex,
+    Limit: opts.pageSize,
+    SearchTerm: opts.search && opts.search.trim() ? opts.search.trim() : undefined,
+    Fields: 'PrimaryImageAspectRatio,ImageTags,PrimaryImageTag'
+  }, fetchImpl);
+  return { items: res?.Items ?? [], total: res?.TotalRecordCount ?? 0 };
+}
+
+export async function listMoviesPaged(
+  opts: { page: number; pageSize: number; sortBy?: string; sortOrder?: SortOrder; search?: string },
+  fetchImpl: typeof fetch = fetch
+) {
+  return queryLibrary('Movie', opts, fetchImpl);
+}
+
+export async function listSeriesPaged(
+  opts: { page: number; pageSize: number; sortBy?: string; sortOrder?: SortOrder; search?: string },
+  fetchImpl: typeof fetch = fetch
+) {
+  return queryLibrary('Series', opts, fetchImpl);
+}
+
 
 export async function getResumeMovies(limit = 20, fetchImpl: typeof fetch = fetch) {
   return getResumeItems(limit, 'Movie', fetchImpl);
