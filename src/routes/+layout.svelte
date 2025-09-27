@@ -6,7 +6,7 @@
 
     let { children } = $props();
     const pathname = $derived($page.url.pathname);
-    const showBottomBar = $derived(pathname === '/' || pathname.startsWith('/films') || pathname.startsWith('/series'));
+    const showBottomBar = $derived(pathname === '/' || pathname.startsWith('/films') || pathname.startsWith('/series') || pathname.startsWith('/search') || pathname.startsWith('/add'));
 </script>
 
 <ModeWatcher defaultMode="dark" />

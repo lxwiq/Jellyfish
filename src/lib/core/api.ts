@@ -185,6 +185,35 @@ export async function getShowNextUp(seriesId: string, fetchImpl: typeof fetch = 
   return res?.Items?.[0] ?? null;
 }
 
+export async function getNextUpEpisodes(limit = 20, fetchImpl: typeof fetch = fetch): Promise<EpisodeItem[]> {
+  const userId = assertUser();
+  const res = await apiGet<ItemsResponse<EpisodeItem>>(`/Shows/NextUp`, {
+    UserId: userId,
+    Limit: limit,
+    Fields: 'Overview,RunTimeTicks,ImageTags,PrimaryImageTag,CommunityRating,OfficialRating,UserData,ParentIndexNumber,IndexNumber'
+  }, fetchImpl);
+  return res?.Items ?? [];
+}
+
+export async function getResumeItems(limit = 20, includeItemTypes: string, fetchImpl: typeof fetch = fetch) {
+  const userId = assertUser();
+  const res = await apiGet<ItemsResponse<ItemDetail>>(`/Users/${userId}/Items/Resume`, {
+    IncludeItemTypes: includeItemTypes,
+    Limit: limit,
+    Fields: 'Overview,RunTimeTicks,ImageTags,PrimaryImageTag,CommunityRating,OfficialRating,UserData'
+  }, fetchImpl);
+  return res?.Items ?? [];
+}
+
+export async function getResumeMovies(limit = 20, fetchImpl: typeof fetch = fetch) {
+  return getResumeItems(limit, 'Movie', fetchImpl);
+}
+
+export async function getResumeEpisodes(limit = 20, fetchImpl: typeof fetch = fetch) {
+  return getResumeItems(limit, 'Episode', fetchImpl);
+}
+
+
 
 
 export function videoStreamUrl(id: string, opts?: { startTicks?: number; container?: 'mp4' | 'webm' }) {
