@@ -40,3 +40,80 @@ export async function getNextUp(
   return Array.isArray((data as any)) ? (data as any) : (data.Items ?? []);
 }
 
+// Fetch user views (libraries)
+export async function getUserViews(
+  baseUrl: string,
+  token: string,
+  userId: string
+): Promise<Array<{ Id: string; Name: string; CollectionType?: string }>> {
+  const url = new URL(`${baseUrl}/Users/${userId}/Views`);
+  const data = await jfGet<{ Items?: Array<{ Id: string; Name: string; CollectionType?: string }> }>(url, token);
+  return data?.Items ?? [];
+}
+
+// Resolve a library (view) ID by CollectionType or by localized names fallback.
+export async function resolveLibraryId(
+  baseUrl: string,
+  token: string,
+  userId: string,
+  kind: 'movies' | 'series'
+): Promise<{ id: string; name: string } | null> {
+  const views = await getUserViews(baseUrl, token, userId);
+  const ct = kind === 'movies' ? 'movies' : 'tvshows';
+  const byCollection = views.find((v) => (v.CollectionType ?? '').toLowerCase() === ct);
+  if (byCollection) return { id: byCollection.Id, name: byCollection.Name };
+
+  const normalize = (s: string | undefined) => (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const hasName = (v: { Name: string }, names: string[]) => names.some((x) => normalize(v.Name) === normalize(x));
+  const movieNames = ['films', 'film', 'movies', 'movie'];
+  const seriesNames = ['series', 'séries', 'serie', 'série', 'tv shows', 'tv', 'shows'];
+  const fallback = views.find((v) => hasName(v, kind === 'movies' ? movieNames : seriesNames));
+  return fallback ? { id: fallback.Id, name: fallback.Name } : null;
+}
+
+export type SortBy = 'SortName' | 'DateCreated' | 'PremiereDate' | 'CommunityRating';
+export type SortOrder = 'Ascending' | 'Descending';
+
+export type PagedResult = { Items: JellyfinItem[]; TotalRecordCount: number };
+
+export async function fetchLibraryItems(
+  baseUrl: string,
+  token: string,
+  userId: string,
+  parentId: string,
+  includeItemTypes: string,
+  opts: { startIndex: number; limit: number; sortBy: SortBy; sortOrder: SortOrder }
+): Promise<PagedResult> {
+  const url = new URL(`${baseUrl}/Users/${userId}/Items`);
+  url.searchParams.set('ParentId', parentId);
+  url.searchParams.set('IncludeItemTypes', includeItemTypes);
+  url.searchParams.set('Recursive', 'true');
+  url.searchParams.set('StartIndex', String(opts.startIndex));
+  url.searchParams.set('Limit', String(opts.limit));
+  url.searchParams.set('SortBy', opts.sortBy);
+  url.searchParams.set('SortOrder', opts.sortOrder);
+  url.searchParams.set(
+    'Fields',
+    [
+      'PrimaryImageAspectRatio',
+      'UserData',
+      'RunTimeTicks',
+      'ProductionYear',
+      'SeasonCount',
+      'ChildCount',
+      'RecursiveItemCount',
+      'OfficialRating',
+      'MediaStreams',
+      'Status',
+      'SeriesInfo',
+      'IndexNumber',
+    ].join(',')
+  );
+  const data = await jfGet<PagedResult>(url, token);
+  // Some servers return array directly; normalize
+  if (Array.isArray((data as any))) {
+    return { Items: data as unknown as JellyfinItem[], TotalRecordCount: (data as any).length ?? 0 };
+  }
+  return { Items: data.Items ?? [], TotalRecordCount: data.TotalRecordCount ?? (data.Items?.length ?? 0) };
+}
+

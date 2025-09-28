@@ -3,6 +3,7 @@
   import { session } from '$lib/state/session.js';
   import { get } from 'svelte/store';
   import { restoreSession } from '$lib/services/authService.js';
+  import { SafeArea } from '$lib/components/ui/safe-area';
 
   // On app boot, try to restore a previous session (Android/iOS/desktop)
   $effect.pre(() => {

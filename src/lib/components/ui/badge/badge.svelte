@@ -12,6 +12,13 @@
 				destructive:
 					"bg-destructive [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/70 border-transparent text-white",
 				outline: "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+				// custom semantic variants
+				success:
+					"bg-emerald-600 text-white dark:bg-emerald-500 border-transparent",
+				info:
+					"bg-blue-600 text-white dark:bg-blue-500 border-transparent",
+				warning:
+					"bg-amber-500 text-amber-950 dark:bg-amber-400 dark:text-amber-950 border-transparent",
 			},
 		},
 		defaultVariants: {
