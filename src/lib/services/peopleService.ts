@@ -1,5 +1,5 @@
 import type { Api } from '@jellyfin/sdk';
-import { ItemsApiFactory } from '@jellyfin/sdk';
+import { ItemsApiFactory } from '@jellyfin/sdk/lib/generated-client/api/items-api';
 
 export type JellyfinItem = Record<string, any>;
 
@@ -29,14 +29,10 @@ export async function getPersonFilmography(
     enableTotalRecordCount: true,
     fields: [
       'PrimaryImageAspectRatio',
-      'UserData',
-      'RunTimeTicks',
-      'ProductionYear',
       'MediaStreams',
-      'SeriesInfo',
-      'PrimaryImageTag',
-      'BackdropImageTags',
-      'ThumbImageTag'
+      'Overview',
+      'People',
+      'ProviderIds'
     ]
   });
   const data: any = res.data ?? {};

@@ -64,33 +64,41 @@
   }
 </script>
 
-<SafeArea class="mx-auto w-full min-h-[100svh] px-5 sm:px-8 py-6 sm:py-8 space-y-6">
+<SafeArea class="mx-auto w-full min-h-[100svh] px-0 sm:px-0 pb-safe">
   {#if loading}
     <div class="space-y-4">
-      <Skeleton class="h-40 w-full rounded-md" />
-      <div class="space-y-2">
-        <Skeleton class="h-6 w-40" />
+      <Skeleton class="h-48 w-full rounded-none" />
+      <div class="px-5 sm:px-8 space-y-3">
+        <Skeleton class="h-6 w-2/3" />
         <Skeleton class="h-4 w-1/2" />
       </div>
     </div>
   {:else if error}
-    <div><p class="text-sm text-destructive">{error}</p></div>
+    <div class="px-5 sm:px-8 py-6"><p class="text-sm text-destructive">{error}</p></div>
   {:else if person}
-    <!-- Header -->
-    <div class="flex items-center gap-4">
-      <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-secondary border">
-        <img src={personImageUrl(baseUrl, token, person.Id, 200, person.ImageTags?.Primary)} alt={person.Name} class="w-full h-full object-cover" />
-      </div>
-      <div class="min-w-0">
-        <h1 class="text-lg sm:text-xl font-semibold line-clamp-2">{person.Name}</h1>
-        {#if person.Overview}
-          <p class="mt-1 text-sm text-muted-foreground line-clamp-2">{person.Overview}</p>
-        {/if}
-      </div>
+    <!-- Backdrop header -->
+    <div class="relative w-full h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80">
+      <img src={personImageUrl(baseUrl, token, person.Id, 720, person.ImageTags?.Primary)} alt={person.Name} class="absolute inset-0 w-full h-full object-cover" />
+      <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-background/0 h-24"></div>
     </div>
 
+    <!-- Main content -->
+    <div class="-mt-16 px-5 sm:px-8">
+      <div class="mx-auto max-w-6xl rounded-xl border bg-background/80 backdrop-blur shadow-md p-4 sm:p-6">
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-secondary border">
+            <img src={personImageUrl(baseUrl, token, person.Id, 200, person.ImageTags?.Primary)} alt={person.Name} class="w-full h-full object-cover" />
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-lg sm:text-xl font-semibold line-clamp-2">{person.Name}</h1>
+            {#if person.Overview}
+              <p class="mt-1 text-sm text-muted-foreground line-clamp-2">{person.Overview}</p>
+            {/if}
+          </div>
+        </div>
+
     <!-- Movies -->
-    <section class="space-y-3">
+    <section class="space-y-3 mt-4">
       <h2 class="text-base font-semibold">Films</h2>
       {#if movies.length === 0}
         <p class="text-sm text-muted-foreground">Aucun film</p>
@@ -98,7 +106,7 @@
         <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
           <CarouselContent class="pl-2 pr-2 sm:pl-4 sm:pr-4">
             {#each movies as it (it.Id)}
-              <CarouselItem class="basis-[45%] xs:basis-[35%] sm:basis-[28%] md:basis-[22%] lg:basis-[18%]">
+              <CarouselItem class="basis-[60%] xs:basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
                 <a href={`/movie/${it.Id}`} aria-label={it.Name} class="block">
                   <MediaCard item={it} {baseUrl} {token} kind="movie" variant="grid" />
                 </a>
@@ -120,7 +128,7 @@
         <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
           <CarouselContent class="pl-2 pr-2 sm:pl-4 sm:pr-4">
             {#each series as it (it.Id)}
-              <CarouselItem class="basis-[45%] xs:basis-[35%] sm:basis-[28%] md:basis-[22%] lg:basis-[18%]">
+              <CarouselItem class="basis-[60%] xs:basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
                 <a href={`/series/${it.Id}`} aria-label={it.Name} class="block">
                   <MediaCard item={it} {baseUrl} {token} kind="series" variant="grid" />
                 </a>
@@ -160,6 +168,8 @@
         </div>
       {/if}
     </section>
+    </div>
+    </div>
 {/if}
 </SafeArea>
 
