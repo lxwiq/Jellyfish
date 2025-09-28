@@ -19,9 +19,22 @@
 	{max}
 	{...restProps}
 >
-	<div
-		data-slot="progress-indicator"
-		class="bg-primary h-full w-full flex-1 transition-all"
-		style="transform: translateX(-{100 - (100 * (value ?? 0)) / (max ?? 1)}%)"
-	></div>
+	{#if value == null}
+		<div class="h-full w-2/5 bg-primary rounded-full animate-[jfbar_1.1s_infinite_ease-in-out]"></div>
+	{:else}
+		<div
+			data-slot="progress-indicator"
+			class="bg-primary h-full w-full flex-1 transition-all"
+			style="transform: translateX(-{100 - (100 * (value ?? 0)) / (max ?? 1)}%)"
+		></div>
+	{/if}
 </ProgressPrimitive.Root>
+
+
+<style>
+  @keyframes jfbar {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(50%); }
+    100% { transform: translateX(250%); }
+  }
+</style>
