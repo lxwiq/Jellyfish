@@ -117,3 +117,117 @@ export async function fetchLibraryItems(
   return { Items: data.Items ?? [], TotalRecordCount: data.TotalRecordCount ?? (data.Items?.length ?? 0) };
 }
 
+
+
+// Generic POST helper
+async function jfPost<T = any>(url: URL | string, token: string, body: any): Promise<T> {
+  const res = await fetch(url.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Emby-Token': token },
+    body: body == null ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Jellyfin request failed: ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+export async function getItemDetails(
+  baseUrl: string,
+  token: string,
+  userId: string,
+  itemId: string
+): Promise<JellyfinItem> {
+  const url = new URL(`${baseUrl}/Users/${userId}/Items/${itemId}`);
+  url.searchParams.set(
+    'Fields',
+    [
+      'PrimaryImageAspectRatio',
+      'Overview',
+      'People',
+      'Genres',
+      'Studios',
+      'OriginalTitle',
+      'RunTimeTicks',
+      'ProductionYear',
+      'CommunityRating',
+      'OfficialRating',
+      'MediaStreams',
+      'Taglines',
+      'ExternalUrls',
+      'Status',
+      'SeriesGenres',
+      'SeasonCount',
+      'ChildCount',
+      'RecursiveItemCount'
+    ].join(',')
+  );
+  return jfGet<JellyfinItem>(url, token);
+}
+
+export async function getSeasons(
+  baseUrl: string,
+  token: string,
+  userId: string,
+  seriesId: string
+): Promise<JellyfinItem[]> {
+  const url = new URL(`${baseUrl}/Shows/${seriesId}/Seasons`);
+  url.searchParams.set('UserId', userId);
+  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,Overview,IndexNumber');
+  const data = await jfGet<{ Items?: JellyfinItem[] }>(url, token);
+  return data?.Items ?? [];
+}
+
+export async function getEpisodes(
+  baseUrl: string,
+  token: string,
+  userId: string,
+  seriesId: string,
+  seasonId?: string
+): Promise<JellyfinItem[]> {
+  const url = new URL(`${baseUrl}/Shows/${seriesId}/Episodes`);
+  url.searchParams.set('UserId', userId);
+  if (seasonId) url.searchParams.set('SeasonId', seasonId);
+  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,RunTimeTicks,IndexNumber,ParentIndexNumber,ThumbImageTag,BackdropImageTags');
+  const data = await jfGet<{ Items?: JellyfinItem[] }>(url, token);
+  return data?.Items ?? [];
+}
+
+export async function getSimilarItems(
+  baseUrl: string,
+  token: string,
+  itemId: string,
+  limit = 20
+): Promise<JellyfinItem[]> {
+  const url = new URL(`${baseUrl}/Items/${itemId}/Similar`);
+  url.searchParams.set('Limit', String(limit));
+  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,RunTimeTicks,ProductionYear,MediaStreams,SeriesInfo');
+  const data = await jfGet<{ Items?: JellyfinItem[] }>(url, token);
+  return data?.Items ?? [];
+}
+
+export type PlaybackInfo = {
+  MediaSources?: Array<{
+    Id?: string;
+    Path?: string;
+    Size?: number;
+    Name?: string;
+    Container?: string;
+    DirectStreamUrl?: string;
+    TranscodingUrl?: string;
+    SupportsDirectPlay?: boolean;
+    SupportsDirectStream?: boolean;
+    SupportsTranscoding?: boolean;
+    MediaStreams?: any[];
+  }>;
+};
+
+export async function getPlaybackInfo(
+  baseUrl: string,
+  token: string,
+  userId: string,
+  itemId: string
+): Promise<PlaybackInfo> {
+  const url = new URL(`${baseUrl}/Items/${itemId}/PlaybackInfo`);
+  url.searchParams.set('UserId', userId);
+  // Minimal body to let server select a source; device profile could be added later
+  return jfPost<PlaybackInfo>(url, token, {});
+}

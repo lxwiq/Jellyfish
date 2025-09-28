@@ -202,19 +202,25 @@
         {#if viewMode === 'list'}
           <div class="grid grid-cols-1 gap-2">
             {#each items as it (it.Id)}
-              <MediaCard item={it} {baseUrl} {token} kind="series" variant="list" />
+              <a href={`/anime/${it.Id}`} aria-label={it.Name}>
+                <MediaCard item={it} {baseUrl} {token} kind="series" variant="list" />
+              </a>
             {/each}
           </div>
         {:else if viewMode === 'rect'}
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
             {#each items as it (it.Id)}
-              <MediaCard item={it} {baseUrl} {token} kind="series" variant="rect" />
+              <a href={`/anime/${it.Id}`} aria-label={it.Name}>
+                <MediaCard item={it} {baseUrl} {token} kind="series" variant="rect" />
+              </a>
             {/each}
           </div>
         {:else}
           <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
             {#each items as it (it.Id)}
-              <MediaCard item={it} {baseUrl} {token} kind="series" variant="grid" />
+              <a href={`/anime/${it.Id}`} aria-label={it.Name}>
+                <MediaCard item={it} {baseUrl} {token} kind="series" variant="grid" />
+              </a>
             {/each}
           </div>
         {/if}
