@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import XIcon from '@lucide/svelte/icons/x';
-  import { player, closePlayer } from '$lib/state/player';
+  import { player, closePlayer, nextCandidate } from '$lib/state/player';
 
   let videoEl: HTMLVideoElement | null = null;
 
@@ -39,7 +39,8 @@
           autoplay
           playsinline
           class="w-full h-full object-contain bg-black"
-        />
+          onerror={() => nextCandidate()}
+        ></video>
       </div>
     {/if}
   </div>

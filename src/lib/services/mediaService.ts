@@ -231,6 +231,15 @@ export async function getPlaybackInfo(
 ): Promise<PlaybackInfo> {
   const url = new URL(`${baseUrl}/Items/${itemId}/PlaybackInfo`);
   url.searchParams.set('UserId', userId);
-  // Minimal body to let server select a source; device profile could be added later
-  return jfPost<PlaybackInfo>(url, token, {});
+  // Provide basic playback flags to improve server URL generation
+  const body = {
+    UserId: userId,
+    AutoOpenLiveStream: true,
+    EnableDirectPlay: true,
+    EnableDirectStream: true,
+    EnableTranscoding: true,
+    EnableAudio: true,
+    EnableVideo: true,
+  } as const;
+  return jfPost<PlaybackInfo>(url, token, body);
 }
