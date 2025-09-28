@@ -100,6 +100,15 @@
     return `${url}&api_key=${encodeURIComponent(token)}`;
   }
 
+  function hrefFor(it: any): string {
+    const t = (it?.Type ?? '').toLowerCase();
+    if (t === 'movie') return `/movie/${it.Id}`;
+    if (t === 'episode') return `/episode/${it.Id}`;
+    if (t === 'series') return `/series/${it.Id}`;
+    return it?.SeriesId ? `/series/${it.SeriesId}` : `/movie/${it.Id}`;
+  }
+
+
   async function loadData() {
     loading = true;
     try {
@@ -211,7 +220,7 @@
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
           {#each continueWatching as it (it.Id)}
             <CarouselItem class="basis-[70%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-              <div>
+              <a href={hrefFor(it)} aria-label={it.Name} class="block">
                 <AspectRatio ratio={16/9} class="rounded-md overflow-hidden bg-secondary">
                   <img
                     src={pickInitialLandscape(it).src}
@@ -223,7 +232,7 @@
                   />
                 </AspectRatio>
                 <p class="mt-2 line-clamp-2 text-sm">{it.SeriesName ? `${it.SeriesName} — ${it.Name}` : it.Name}</p>
-              </div>
+              </a>
             </CarouselItem>
           {/each}
         </CarouselContent>
@@ -262,7 +271,7 @@
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
           {#each nextEpisodes as it (it.Id)}
             <CarouselItem class="basis-[70%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-              <div>
+              <a href={`/episode/${it.Id}`} aria-label={it.Name} class="block">
                 <AspectRatio ratio={16/9} class="rounded-md overflow-hidden bg-secondary">
                   <img
                     src={pickInitialLandscape(it).src}
@@ -274,7 +283,7 @@
                   />
                 </AspectRatio>
                 <p class="mt-2 line-clamp-2 text-sm">{it.SeriesName ? `${it.SeriesName} — ${it.Name}` : it.Name}</p>
-              </div>
+              </a>
             </CarouselItem>
           {/each}
         </CarouselContent>
@@ -313,7 +322,7 @@
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
           {#each items.anime as it (it.Id)}
             <CarouselItem class="basis-[40%] sm:basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/8">
-              <div>
+              <a href={`/series/${it.Id}`} aria-label={it.Name} class="block">
                 <AspectRatio ratio={2/3} class="rounded-md overflow-hidden bg-secondary">
                   <img
                     src={imageUrl(it.Id, 'Primary', 450)}
@@ -323,7 +332,7 @@
                   />
                 </AspectRatio>
                 <p class="mt-2 line-clamp-2 text-sm">{it.Name}</p>
-              </div>
+              </a>
             </CarouselItem>
           {/each}
         </CarouselContent>
@@ -360,7 +369,7 @@
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
           {#each items.films as it (it.Id)}
             <CarouselItem class="basis-[40%] sm:basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/8">
-              <div>
+              <a href={`/movie/${it.Id}`} aria-label={it.Name} class="block">
                 <AspectRatio ratio={2/3} class="rounded-md overflow-hidden bg-secondary">
                   <img
                     src={imageUrl(it.Id, 'Primary', 450)}
@@ -370,7 +379,7 @@
                   />
                 </AspectRatio>
                 <p class="mt-2 line-clamp-2 text-sm">{it.Name}</p>
-              </div>
+              </a>
             </CarouselItem>
           {/each}
         </CarouselContent>
@@ -407,7 +416,7 @@
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
           {#each items.series as it (it.Id)}
             <CarouselItem class="basis-[40%] sm:basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/8">
-              <div>
+              <a href={`/series/${it.Id}`} aria-label={it.Name} class="block">
                 <AspectRatio ratio={2/3} class="rounded-md overflow-hidden bg-secondary">
                   <img
                     src={imageUrl(it.Id, 'Primary', 450)}
@@ -417,7 +426,7 @@
                   />
                 </AspectRatio>
                 <p class="mt-2 line-clamp-2 text-sm">{it.Name}</p>
-              </div>
+              </a>
             </CarouselItem>
           {/each}
         </CarouselContent>

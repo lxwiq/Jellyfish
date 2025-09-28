@@ -164,7 +164,7 @@
             <CarouselContent class="pl-2 pr-2 sm:pl-4 sm:pr-4">
               {#each series.People.slice(0, 14) as p}
                 <CarouselItem class="basis-[45%] xs:basis-[35%] sm:basis-[28%] md:basis-[22%] lg:basis-[18%]">
-                  <div class="flex flex-col items-center text-center">
+                  <a href={`/person/${p.Id}`} aria-label={p.Name} class="flex flex-col items-center text-center">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-secondary border">
                       <img src={personImageUrl(baseUrl, token, p.Id, 200, p.PrimaryImageTag)} alt={p.Name} class="w-full h-full object-cover" />
                     </div>
@@ -174,7 +174,7 @@
                     {:else if p.Type}
                       <p class="text-xs text-muted-foreground line-clamp-1 w-full">{p.Type}</p>
                     {/if}
-                  </div>
+                  </a>
                 </CarouselItem>
               {/each}
             </CarouselContent>
@@ -247,7 +247,9 @@
             <CarouselContent class="pl-2 pr-2 sm:pl-4 sm:pr-4">
               {#each similar as it (it.Id)}
                 <CarouselItem class="basis-[60%] xs:basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                  <MediaCard item={it} {baseUrl} {token} kind="series" variant="grid" />
+                  <a href={`/series/${it.Id}`} aria-label={it.Name} class="block">
+                    <MediaCard item={it} {baseUrl} {token} kind="series" variant="grid" />
+                  </a>
                 </CarouselItem>
               {/each}
             </CarouselContent>
