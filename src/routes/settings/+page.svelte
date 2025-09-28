@@ -25,7 +25,7 @@
     SubtitlePlaybackMode.Smart,
   ];
 
-  $effect(async () => {
+  $effect(() => {
     const s = get(session);
     if (!s.authenticated || !s.baseUrl || !s.token || !s.user || !s.api) {
       goto('/connect');
@@ -33,15 +33,18 @@
     }
     userName = s.user.name;
     avatarUrl = `${s.baseUrl}/Users/${s.user.id}/Images/Primary?api_key=${encodeURIComponent(s.token)}`;
-    try {
-      loading = true;
-      const info = await fetchCurrentUser(s.api);
-      isAdmin = info.isAdmin;
-      userConfig = await loadUserConfiguration(s.api, s.user.id);
-      serverConfig = isAdmin ? await loadServerConfiguration(s.api) : {};
-    } finally {
-      loading = false;
-    }
+    void (async () => {
+      try {
+        loading = true;
+        const api = s.api!; const user = s.user!;
+        const info = await fetchCurrentUser(api);
+        isAdmin = info.isAdmin;
+        userConfig = await loadUserConfiguration(api, user.id);
+        serverConfig = isAdmin ? await loadServerConfiguration(api) : {};
+      } finally {
+        loading = false;
+      }
+    })();
   });
 
   async function saveUser() {

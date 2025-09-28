@@ -20,42 +20,41 @@
   let avatarUrl = $state<string | null>(null);
   let userName = $state<string>('');
 
-  $effect(async () => {
+  $effect(() => {
     const s = get(session);
-    if (!s.authenticated || !s.baseUrl || !s.token || !s.user) return;
+    if (!s.authenticated || !s.baseUrl || !s.token || !s.user || !s.api) return;
     userName = s.user.name;
     avatarUrl = `${s.baseUrl}/Users/${s.user.id}/Images/Primary?api_key=${encodeURIComponent(s.token)}`;
-    try {
-      loading = true;
-      const info = await fetchCurrentUser(s.baseUrl, s.token, s.user.id);
-      isAdmin = info.isAdmin;
-      userConfig = await loadUserConfiguration(s.baseUrl, s.token, s.user.id);
-      if (isAdmin) {
-        serverConfig = await loadServerConfiguration(s.baseUrl, s.token);
-      } else {
-        serverConfig = {};
+    void (async () => {
+      try {
+        loading = true;
+        const api = s.api!; const user = s.user!;
+        const info = await fetchCurrentUser(api);
+        isAdmin = info.isAdmin;
+        userConfig = await loadUserConfiguration(api, user.id);
+        serverConfig = isAdmin ? await loadServerConfiguration(api) : {};
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Settings panel load failed', e);
+      } finally {
+        loading = false;
       }
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('Settings panel load failed', e);
-    } finally {
-      loading = false;
-    }
+    })();
   });
 
   function toggleExpanded() { expanded = !expanded; }
 
   async function saveUser() {
     const s = get(session);
-    if (!s.baseUrl || !s.token || !s.user) return;
-    await saveUserConfiguration(s.baseUrl, s.token, s.user.id, userConfig);
+    if (!s.api || !s.user) return;
+    await saveUserConfiguration(s.api, s.user.id, userConfig);
   }
 
   async function saveServer() {
     if (!isAdmin) return;
     const s = get(session);
-    if (!s.baseUrl || !s.token) return;
-    await saveServerConfiguration(s.baseUrl, s.token, serverConfig);
+    if (!s.api) return;
+    await saveServerConfiguration(s.api, serverConfig);
   }
 
   function onLogout() {

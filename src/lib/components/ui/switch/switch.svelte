@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { HTMLInputAttributes } from 'svelte/elements';
+  import type { HTMLButtonAttributes } from 'svelte/elements';
   import { cn, type WithElementRef } from '$lib/utils.js';
 
-  export type SwitchProps = WithElementRef<HTMLButtonElement> & {
+  export type SwitchProps = WithElementRef<{}, HTMLButtonElement> & {
     checked?: boolean;
     disabled?: boolean;
     name?: string;
@@ -10,7 +10,7 @@
     class?: string;
     size?: 'sm' | 'md';
     label?: string;
-  } & Pick<HTMLInputAttributes, 'aria-label' | 'aria-labelledby' | 'id'>;
+  } & Pick<HTMLButtonAttributes, 'aria-label' | 'aria-labelledby' | 'id'>;
 
   let {
     ref = $bindable(null),
@@ -22,7 +22,9 @@
     size = 'md',
     label,
     id,
-    ...rest
+    // aria attributes
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledby,
   }: SwitchProps = $props();
 
   function toggle() {
@@ -38,6 +40,8 @@
   role="switch"
   aria-checked={checked}
   aria-disabled={disabled}
+  aria-label={ariaLabel}
+  aria-labelledby={ariaLabelledby}
   {id}
   class={cn(
     'inline-flex items-center rounded-full transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ring-offset-background ring-offset-2',
@@ -47,7 +51,6 @@
     className
   )}
   onclick={toggle}
-  {...rest}
 >
   <span
     class={cn(
