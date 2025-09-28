@@ -145,9 +145,9 @@
           <Button variant="outline" size="sm">Vue: {viewMode === 'grid' ? 'Grille' : viewMode === 'rect' ? 'Rectangle' : 'Liste'}</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="min-w-[180px]">
-          <DropdownMenuItem on:select={() => (viewMode = 'grid')}>Grille</DropdownMenuItem>
-          <DropdownMenuItem on:select={() => (viewMode = 'rect')}>Rectangle</DropdownMenuItem>
-          <DropdownMenuItem on:select={() => (viewMode = 'list')}>Liste</DropdownMenuItem>
+          <DropdownMenuItem onclick={() => (viewMode = 'grid')}>Grille</DropdownMenuItem>
+          <DropdownMenuItem onclick={() => (viewMode = 'rect')}>Rectangle</DropdownMenuItem>
+          <DropdownMenuItem onclick={() => (viewMode = 'list')}>Liste</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <!-- Sort selector -->
@@ -157,7 +157,7 @@
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="min-w-[220px]">
           {#each SORT_OPTS as o (o.id)}
-            <DropdownMenuItem on:select={() => (sort = o)}>{o.label}</DropdownMenuItem>
+            <DropdownMenuItem onclick={() => (sort = o)}>{o.label}</DropdownMenuItem>
           {/each}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -226,8 +226,8 @@
       <div class="mt-4 flex items-center justify-between gap-3">
         <div class="text-xs text-muted-foreground">{Math.min((pageIndex * pageSize) + items.length, total)} / {total}</div>
         <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={pageIndex === 0} on:click={() => { pageIndex = Math.max(0, pageIndex - 1); void loadPage(true); }}>Précédent</Button>
-          <Button variant="outline" size="sm" disabled={!hasMore} on:click={() => onLoadMore()}>Suivant</Button>
+          <Button variant="outline" size="sm" disabled={pageIndex === 0} onclick={() => { pageIndex = Math.max(0, pageIndex - 1); void loadPage(true); }}>Précédent</Button>
+          <Button variant="outline" size="sm" disabled={!hasMore} onclick={() => onLoadMore()}>Suivant</Button>
         </div>
       </div>
 
