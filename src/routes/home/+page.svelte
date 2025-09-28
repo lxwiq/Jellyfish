@@ -13,6 +13,9 @@
     CarouselPrevious,
   } from '$lib/components/ui/carousel';
 
+  import { getContinueWatching, getNextUp } from '$lib/services/mediaService.js';
+  import { backdropUrl, posterUrl, thumbUrl } from '$lib/utils/jellyfinImages.js';
+
   type LibraryKey = 'anime' | 'films' | 'series';
 
   let name = $state<string>('');
@@ -33,6 +36,9 @@
     series: [],
   });
 
+  let continueWatching = $state<any[]>([]);
+  let nextEpisodes = $state<any[]>([]);
+
   $effect.pre(() => {
     const s = get(session);
     if (!s.authenticated || !s.api || !s.baseUrl || !s.token || !s.user) {
@@ -46,6 +52,47 @@
     // Kick off loading once session is confirmed
     void loadData();
   });
+
+  type Step = 'thumb' | 'backdrop' | 'seriesThumb' | 'seriesBackdrop' | 'poster';
+
+  function pickInitialLandscape(it: any): { src: string; step: Step } {
+    if (it?.ThumbImageTag) return { src: thumbUrl(baseUrl, token, it.Id, 270), step: 'thumb' };
+    if (Array.isArray(it?.BackdropImageTags) && it.BackdropImageTags.length > 0)
+      return { src: backdropUrl(baseUrl, token, it.Id, 270), step: 'backdrop' };
+    if (it?.SeriesId) return { src: thumbUrl(baseUrl, token, it.SeriesId, 270), step: 'seriesThumb' };
+    return { src: posterUrl(baseUrl, token, it.Id, 600), step: 'poster' };
+  }
+
+  function setFallbackImage(e: Event, it: any) {
+    const img = e.currentTarget as HTMLImageElement;
+    const step = (img.dataset.step as Step) || 'thumb';
+    if (step === 'thumb') {
+      img.dataset.step = 'backdrop';
+      img.src = backdropUrl(baseUrl, token, it.Id, 270);
+      return;
+    }
+    if (step === 'backdrop') {
+      if (it?.SeriesId) {
+        img.dataset.step = 'seriesThumb';
+        img.src = thumbUrl(baseUrl, token, it.SeriesId, 270);
+      } else {
+        img.dataset.step = 'poster';
+        img.src = posterUrl(baseUrl, token, it.Id, 600);
+      }
+      return;
+    }
+    if (step === 'seriesThumb') {
+      img.dataset.step = 'seriesBackdrop';
+      img.src = backdropUrl(baseUrl, token, it.SeriesId, 270);
+      return;
+    }
+    if (step === 'seriesBackdrop') {
+      img.dataset.step = 'poster';
+      img.src = posterUrl(baseUrl, token, it.Id, 600);
+      return;
+    }
+    // last step: poster failed too, keep as-is or hide
+  }
 
   function imageUrl(itemId: string, type: 'Primary' | 'Backdrop' = 'Primary', height = 450) {
     // Use api_key query param so <img> can load without custom headers
@@ -96,10 +143,12 @@
         return Array.isArray(j) ? j : (j?.Items ?? []);
       };
 
-      const [animeItems, filmsItems, seriesItems] = await Promise.all([
+      const [animeItems, filmsItems, seriesItems, cwItems, nextItems] = await Promise.all([
         libraries.anime?.id ? fetchRecent(libraries.anime.id, 'Movie,Series') : Promise.resolve([]),
         libraries.films?.id ? fetchRecent(libraries.films.id, 'Movie') : Promise.resolve([]),
         libraries.series?.id ? fetchRecent(libraries.series.id, 'Series') : Promise.resolve([]),
+        getContinueWatching(baseUrl, token, userId, 24),
+        getNextUp(baseUrl, token, userId, 24),
       ]);
 
       items = {
@@ -107,6 +156,22 @@
         films: filmsItems,
         series: seriesItems,
       };
+
+      continueWatching = cwItems;
+      // Dedupe: remove episodes from NextUp that are already in Continue Watching
+      const cwEpisodeKeys = new Set(
+        cwItems
+          .filter((x: any) => x?.Type === 'Episode')
+          .map((x: any) => (x?.SeriesId && x?.IndexNumber != null)
+            ? `${x.SeriesId}:${x.SeasonId ?? ''}:${x.IndexNumber}`
+            : x.Id)
+      );
+      nextEpisodes = nextItems.filter((ep: any) => {
+        const key = (ep?.Type === 'Episode' && ep?.SeriesId && ep?.IndexNumber != null)
+          ? `${ep.SeriesId}:${ep.SeasonId ?? ''}:${ep.IndexNumber}`
+          : ep.Id;
+        return !cwEpisodeKeys.has(key);
+      });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('Failed to load libraries/items', e);
@@ -117,24 +182,130 @@
 </script>
 
 <SafeArea class="mx-auto w-full min-h-[100svh] px-5 sm:px-8 py-6 sm:py-8 space-y-6">
+  <!-- Continue Watching Section -->
+  <section class="space-y-3">
+    <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+      <h2 class="text-lg sm:text-xl font-semibold">Continuer la lecture</h2>
+    </div>
+    {#if loading}
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each Array.from({ length: 6 }) as _, i}
+            <CarouselItem class="basis-[70%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+              <div>
+                <AspectRatio ratio={16/9} class="rounded-md overflow-hidden">
+                  <Skeleton class="w-full h-full" />
+                </AspectRatio>
+                <Skeleton class="mt-2 h-4 w-40" />
+              </div>
+            </CarouselItem>
+          {/each}
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
+    {:else if continueWatching.length > 0}
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each continueWatching as it (it.Id)}
+            <CarouselItem class="basis-[70%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+              <div>
+                <AspectRatio ratio={16/9} class="rounded-md overflow-hidden bg-secondary">
+                  <img
+                    src={pickInitialLandscape(it).src}
+                    data-step={pickInitialLandscape(it).step}
+                    alt={it.Name}
+                    loading="lazy"
+                    class="w-full h-full object-cover"
+                    onerror={(e) => setFallbackImage(e, it)}
+                  />
+                </AspectRatio>
+                <p class="mt-2 line-clamp-2 text-sm">{it.SeriesName ? `${it.SeriesName} — ${it.Name}` : it.Name}</p>
+              </div>
+            </CarouselItem>
+          {/each}
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
+    {:else}
+      <div class="pl-4 pr-4 sm:pl-6 sm:pr-6 text-sm text-muted-foreground">Rien à reprendre pour le moment</div>
+    {/if}
+  </section>
+
+  <!-- Next Episodes Section -->
+  <section class="space-y-3">
+    <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+      <h2 class="text-lg sm:text-xl font-semibold">Prochains épisodes</h2>
+    </div>
+    {#if loading}
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each Array.from({ length: 6 }) as _, i}
+            <CarouselItem class="basis-[70%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+              <div>
+                <AspectRatio ratio={16/9} class="rounded-md overflow-hidden">
+                  <Skeleton class="w-full h-full" />
+                </AspectRatio>
+                <Skeleton class="mt-2 h-4 w-40" />
+              </div>
+            </CarouselItem>
+          {/each}
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
+    {:else if nextEpisodes.length > 0}
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each nextEpisodes as it (it.Id)}
+            <CarouselItem class="basis-[70%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+              <div>
+                <AspectRatio ratio={16/9} class="rounded-md overflow-hidden bg-secondary">
+                  <img
+                    src={pickInitialLandscape(it).src}
+                    data-step={pickInitialLandscape(it).step}
+                    alt={it.Name}
+                    loading="lazy"
+                    class="w-full h-full object-cover"
+                    onerror={(e) => setFallbackImage(e, it)}
+                  />
+                </AspectRatio>
+                <p class="mt-2 line-clamp-2 text-sm">{it.SeriesName ? `${it.SeriesName} — ${it.Name}` : it.Name}</p>
+              </div>
+            </CarouselItem>
+          {/each}
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
+    {:else}
+      <div class="pl-4 pr-4 sm:pl-6 sm:pr-6 text-sm text-muted-foreground">Aucun épisode à venir</div>
+    {/if}
+  </section>
+
   <!-- Anime Section -->
   <section class="space-y-3">
     <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
       <h2 class="text-lg sm:text-xl font-semibold">Récemment ajoutés — {libraries.anime?.name ?? 'Anime'}</h2>
     </div>
     {#if loading}
-      <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
-        <div class="flex gap-3 overflow-hidden">
-          {#each Array.from({ length: 6 }) as _, i}
-            <div class="w-28 sm:w-36">
-              <AspectRatio ratio={2/3} class="rounded-md overflow-hidden">
-                <Skeleton class="w-full h-full" />
-              </AspectRatio>
-              <Skeleton class="mt-2 h-4 w-24" />
-            </div>
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each Array.from({ length: 8 }) as _, i}
+            <CarouselItem class="basis-[40%] sm:basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/8">
+              <div>
+                <AspectRatio ratio={2/3} class="rounded-md overflow-hidden">
+                  <Skeleton class="w-full h-full" />
+                </AspectRatio>
+                <Skeleton class="mt-2 h-4 w-24" />
+              </div>
+            </CarouselItem>
           {/each}
-        </div>
-      </div>
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
     {:else}
       <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
@@ -166,18 +337,22 @@
       <h2 class="text-lg sm:text-xl font-semibold">Récemment ajoutés — {libraries.films?.name ?? 'Films'}</h2>
     </div>
     {#if loading}
-      <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
-        <div class="flex gap-3 overflow-hidden">
-          {#each Array.from({ length: 6 }) as _, i}
-            <div class="w-28 sm:w-36">
-              <AspectRatio ratio={2/3} class="rounded-md overflow-hidden">
-                <Skeleton class="w-full h-full" />
-              </AspectRatio>
-              <Skeleton class="mt-2 h-4 w-24" />
-            </div>
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each Array.from({ length: 8 }) as _, i}
+            <CarouselItem class="basis-[40%] sm:basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/8">
+              <div>
+                <AspectRatio ratio={2/3} class="rounded-md overflow-hidden">
+                  <Skeleton class="w-full h-full" />
+                </AspectRatio>
+                <Skeleton class="mt-2 h-4 w-24" />
+              </div>
+            </CarouselItem>
           {/each}
-        </div>
-      </div>
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
     {:else}
       <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
@@ -209,18 +384,22 @@
       <h2 class="text-lg sm:text-xl font-semibold">Récemment ajoutés — {libraries.series?.name ?? 'Séries'}</h2>
     </div>
     {#if loading}
-      <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
-        <div class="flex gap-3 overflow-hidden">
-          {#each Array.from({ length: 6 }) as _, i}
-            <div class="w-28 sm:w-36">
-              <AspectRatio ratio={2/3} class="rounded-md overflow-hidden">
-                <Skeleton class="w-full h-full" />
-              </AspectRatio>
-              <Skeleton class="mt-2 h-4 w-24" />
-            </div>
+      <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
+        <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+          {#each Array.from({ length: 8 }) as _, i}
+            <CarouselItem class="basis-[40%] sm:basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/8">
+              <div>
+                <AspectRatio ratio={2/3} class="rounded-md overflow-hidden">
+                  <Skeleton class="w-full h-full" />
+                </AspectRatio>
+                <Skeleton class="mt-2 h-4 w-24" />
+              </div>
+            </CarouselItem>
           {/each}
-        </div>
-      </div>
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
     {:else}
       <Carousel class="relative" opts={{ align: 'start', containScroll: 'trimSnaps', slidesToScroll: 'auto', skipSnaps: true }}>
         <CarouselContent class="pl-4 pr-4 sm:pl-6 sm:pr-6">
