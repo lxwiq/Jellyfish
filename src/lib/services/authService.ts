@@ -9,6 +9,7 @@ import {
   getBaseUrl as readBaseUrl,
   getAccessToken as readAccessToken,
   getUser as readUser,
+  clearSessionStorage,
 } from '$lib/core/storage.js';
 
 export function validateServerUrl(input: string): { ok: true; url: string } | { ok: false; error: string } {
@@ -49,6 +50,11 @@ export async function loginWithCredentials(api: Api, username: string, password:
     const authedApi = createApi(baseUrl, token);
     session.setApi(authedApi);
   }
+}
+
+export function logout() {
+  try { clearSessionStorage(); } catch {}
+  session.logout();
 }
 
 // Attempt to restore a previous session from storage (mobile/desktop)

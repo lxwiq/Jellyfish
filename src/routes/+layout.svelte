@@ -1,18 +1,39 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  onMount(() => {
+    const el = document.getElementById('app-menubar');
+    const update = () => {
+      const h = el?.offsetHeight ?? 0;
+      const gap = 14; // vertical gap from bottom used in inline style
+      // add a small extra buffer so content doesn't feel too tight
+      const reserve = h + gap + 8;
+      document.documentElement.style.setProperty('--menubar-reserved', `${reserve}px`);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    if (el) ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  });
+
+
   import { ModeWatcher } from 'mode-watcher';
   import '../app.css';
   import { Progress } from '$lib/components/ui/progress';
   import { navigating } from '$app/stores';
   import { page } from '$app/stores';
 
-  import { restoreSession } from '$lib/services/authService.js';
+  import { restoreSession, logout } from '$lib/services/authService.js';
   import { goto } from '$app/navigation';
   import { session } from '$lib/state/session.js';
   import { Menubar, MenubarMenu, MenubarTrigger, MenubarContent, MenubarItem } from '$lib/components/ui/menubar';
   import HomeIcon from '@lucide/svelte/icons/home';
   import LibraryIcon from '@lucide/svelte/icons/library';
   import SearchIcon from '@lucide/svelte/icons/search';
-
+  import SettingsIcon from '@lucide/svelte/icons/settings';
 
   let { children } = $props();
   let isNavigating = $state(false);
@@ -66,7 +87,7 @@
 <!-- spacer to avoid content under the fixed menubar (approx height) -->
 
 
-<Menubar class="fixed z-40 left-1/2 -translate-x-1/2 rounded-full border border-white/20 dark:border-white/10 bg-white/10 dark:bg-neutral-900/35 backdrop-blur-xl saturate-150 shadow-2xl px-2.5 py-1 supports-[backdrop-filter]:bg-white/10" style="bottom: calc(env(safe-area-inset-bottom) + 14px)">
+<Menubar id="app-menubar" class="fixed z-40 left-1/2 -translate-x-1/2 rounded-full border border-white/20 dark:border-white/10 bg-white/10 dark:bg-neutral-900/35 backdrop-blur-xl saturate-150 shadow-2xl px-2.5 py-1 supports-[backdrop-filter]:bg-white/10" style="bottom: calc(env(safe-area-inset-bottom) + 14px)">
   <div class="flex items-center gap-8">
     <!-- Home (hidden on /home) -->
     {#if !$page.url.pathname.startsWith('/home')}
@@ -95,6 +116,11 @@
     <button class="h-9 w-9 grid place-items-center rounded-full hover:bg-white/10 dark:hover:bg-white/5 transition" title="Recherche" aria-label="Recherche" onclick={() => goto('/search')}>
       <SearchIcon class="h-5 w-5" />
     </button>
+    <!-- Settings direct -->
+    <button class="h-9 w-9 grid place-items-center rounded-full hover:bg-white/10 dark:hover:bg-white/5 transition" title="Paramètres" aria-label="Paramètres" onclick={() => goto('/settings')}>
+      <SettingsIcon class="h-5 w-5" />
+    </button>
+
   </div>
 </Menubar>
 

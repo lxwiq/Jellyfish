@@ -7,6 +7,7 @@ export type StoredUser = { id: string; name: string };
 const KEY_BASE_URL = 'jellyfish.baseUrl';
 const KEY_ACCESS_TOKEN = 'jellyfish.accessToken';
 const KEY_USER = 'jellyfish.user';
+const KEY_QC_ENABLED = 'jellyfish.quickConnectEnabled';
 
 function safeGet(key: string): string | null {
   try {
@@ -60,6 +61,16 @@ export function getUser(): StoredUser | null {
 
 export function setUser(user: StoredUser) {
   safeSet(KEY_USER, JSON.stringify(user));
+}
+
+export function getQuickConnectEnabled(): boolean | null {
+  const raw = safeGet(KEY_QC_ENABLED);
+  if (raw == null) return null;
+  return raw === '1' || raw === 'true';
+}
+
+export function setQuickConnectEnabled(enabled: boolean) {
+  safeSet(KEY_QC_ENABLED, enabled ? '1' : '0');
 }
 
 export function clearSessionStorage() {

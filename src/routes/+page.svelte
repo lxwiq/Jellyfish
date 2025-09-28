@@ -13,7 +13,9 @@
   });
 </script>
 
-<section class="p-6">
-  <p>Redirecting…</p>
-</section>
+<SafeArea class="mx-auto w-full min-h-[100svh] px-5 sm:px-8 py-6 sm:py-8">
+  <div class="pl-4 pr-4 sm:pl-6 sm:pr-6">
+    <p>Redirecting…</p>
+  </div>
+</SafeArea>
 

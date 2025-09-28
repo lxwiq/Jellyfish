@@ -181,6 +181,8 @@
   }
 </script>
 
+
+
 <SafeArea class="mx-auto w-full min-h-[100svh] px-5 sm:px-8 py-6 sm:py-8 space-y-6">
   <!-- Continue Watching Section -->
   <section class="space-y-3">

@@ -34,24 +34,26 @@
   }
 </script>
 
-<SafeArea class="mx-auto w-full max-w-sm min-h-[100svh] px-4 py-6 sm:py-10 flex flex-col justify-center space-y-4">
-  <h1 class="text-xl sm:text-2xl font-semibold">Sign in</h1>
-  {#if loading}
-    <Progress class="h-1" />
-  {/if}
-  <form onsubmit={onSubmit} class="space-y-3">
-    <div class="space-y-1">
-      <label class="text-sm font-medium" for="username">Username</label>
-      <Input id="username" placeholder="Username" bind:value={username} required />
-    </div>
-    <div class="space-y-1">
-      <label class="text-sm font-medium" for="password">Password</label>
-      <Input id="password" type="password" placeholder="Password" bind:value={password} required />
-    </div>
-    {#if error}
-      <p class="text-sm text-destructive">{error}</p>
+<SafeArea class="mx-auto w-full max-w-sm min-h-[100svh] px-5 sm:px-8 py-6 sm:py-8 flex flex-col justify-center space-y-6">
+  <div class="pl-4 pr-4 sm:pl-6 sm:pr-6 space-y-4">
+    <h1 class="text-xl sm:text-2xl font-semibold">Sign in</h1>
+    {#if loading}
+      <Progress class="h-1" />
     {/if}
-    <Button class="w-full" type="submit" disabled={loading || !username.trim() || !password}>Sign in</Button>
-  </form>
+    <form onsubmit={onSubmit} class="space-y-3">
+      <div class="space-y-1">
+        <label class="text-sm font-medium" for="username">Username</label>
+        <Input id="username" placeholder="Username" bind:value={username} required />
+      </div>
+      <div class="space-y-1">
+        <label class="text-sm font-medium" for="password">Password</label>
+        <Input id="password" type="password" placeholder="Password" bind:value={password} required />
+      </div>
+      {#if error}
+        <p class="text-sm text-destructive">{error}</p>
+      {/if}
+      <Button class="w-full" type="submit" disabled={loading || !username.trim() || !password}>Sign in</Button>
+    </form>
+  </div>
 </SafeArea>
 

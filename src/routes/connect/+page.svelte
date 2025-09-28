@@ -30,20 +30,22 @@
   }
 </script>
 
-<SafeArea class="mx-auto w-full max-w-sm min-h-[100svh] px-4 py-6 sm:py-10 flex flex-col justify-center space-y-4">
-  <h1 class="text-xl sm:text-2xl font-semibold">Connect to Jellyfin</h1>
-  {#if loading}
-    <Progress class="h-1" />
-  {/if}
-  <form onsubmit={onSubmit} class="space-y-3">
-    <div class="space-y-1">
-      <label class="text-sm font-medium" for="server-url">Server URL</label>
-      <Input id="server-url" placeholder="https://serv.host.fr[/jellyfin]" bind:value={serverUrl} type="url" required aria-invalid={!!error} />
-      {#if error}
-        <p class="text-sm text-destructive">{error}</p>
-      {/if}
-    </div>
-    <Button class="w-full" type="submit" disabled={loading || !serverUrl.trim()}>Continue</Button>
-  </form>
+<SafeArea class="mx-auto w-full max-w-sm min-h-[100svh] px-5 sm:px-8 py-6 sm:py-8 flex flex-col justify-center space-y-6">
+  <div class="pl-4 pr-4 sm:pl-6 sm:pr-6 space-y-4">
+    <h1 class="text-xl sm:text-2xl font-semibold">Connect to Jellyfin</h1>
+    {#if loading}
+      <Progress class="h-1" />
+    {/if}
+    <form onsubmit={onSubmit} class="space-y-3">
+      <div class="space-y-1">
+        <label class="text-sm font-medium" for="server-url">Server URL</label>
+        <Input id="server-url" placeholder="https://serv.host.fr[/jellyfin]" bind:value={serverUrl} type="url" required aria-invalid={!!error} />
+        {#if error}
+          <p class="text-sm text-destructive">{error}</p>
+        {/if}
+      </div>
+      <Button class="w-full" type="submit" disabled={loading || !serverUrl.trim()}>Continue</Button>
+    </form>
+  </div>
 </SafeArea>
 
