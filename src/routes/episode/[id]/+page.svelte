@@ -11,6 +11,7 @@
   import PlayIcon from '@lucide/svelte/icons/play';
 
   import { session } from '$lib/state/session.js';
+  import { openPlayer } from '$lib/state/player.js';
   import { posterUrl, backdropUrl, thumbUrl, personImageUrl } from '$lib/utils/jellyfinImages.js';
   import { getItemDetails, type JellyfinItem } from '$lib/services/mediaService.js';
 
@@ -72,7 +73,7 @@
     img.style.display = 'none';
   }
 
-  function playEpisode() { goto(`/play/${episodeId}`); }
+  function playEpisode() { openPlayer(episodeId); }
 </script>
 
 <SafeArea class="mx-auto w-full min-h-[100svh] px-0 sm:px-0 pb-safe">

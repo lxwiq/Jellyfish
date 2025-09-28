@@ -12,6 +12,7 @@
   import PlayIcon from '@lucide/svelte/icons/play';
 
   import { session } from '$lib/state/session.js';
+  import { openPlayer } from '$lib/state/player.js';
   import { MediaCard } from '$lib/components/system';
 
   import { posterUrl, backdropUrl, logoUrl, personImageUrl } from '$lib/utils/jellyfinImages.js';
@@ -84,7 +85,7 @@
     const mb = size / (1024*1024); return mb > 1024 ? `${(mb/1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
   }
 
-  function playOrResume() { goto(`/play/${itemId}`); }
+  function playOrResume() { openPlayer(itemId); }
 </script>
 
 <SafeArea class="mx-auto w-full min-h-[100svh] px-0 sm:px-0 pb-safe">

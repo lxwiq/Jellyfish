@@ -10,6 +10,7 @@
   import { Skeleton } from '$lib/components/ui/skeleton';
   import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '$lib/components/ui/carousel';
   import PlayIcon from '@lucide/svelte/icons/play';
+  import { openPlayer } from '$lib/state/player.js';
 
   import { session } from '$lib/state/session.js';
   import { MediaCard } from '$lib/components/system';
@@ -67,7 +68,7 @@
   function epDisplay(e: any) { const s = e?.ParentIndexNumber; const n = e?.IndexNumber; return s!=null && n!=null ? `S${String(s).padStart(2,'0')}E${String(n).padStart(2,'0')}` : (n!=null? `E${n}` : ''); }
   function isPlayed(e: any) { const u = e?.UserData ?? {}; return !!u?.Played || (u?.PlayCount ?? 0) > 0; }
 
-  function playEpisode(id: string) { goto(`/play/${id}`); }
+  function playEpisode(id: string) { openPlayer(id); }
 
   function episodeMetaLabel(e: any) {
     const s = e?.ParentIndexNumber; const n = e?.IndexNumber;
