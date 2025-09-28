@@ -141,6 +141,9 @@ export async function getItemDetails(
     'Fields',
     [
       'PrimaryImageAspectRatio',
+      'ImageTags',
+      'BackdropImageTags',
+      'ThumbImageTag',
       'Overview',
       'People',
       'Genres',
@@ -186,7 +189,7 @@ export async function getEpisodes(
   const url = new URL(`${baseUrl}/Shows/${seriesId}/Episodes`);
   url.searchParams.set('UserId', userId);
   if (seasonId) url.searchParams.set('SeasonId', seasonId);
-  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,RunTimeTicks,IndexNumber,ParentIndexNumber,ThumbImageTag,BackdropImageTags');
+  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,RunTimeTicks,IndexNumber,ParentIndexNumber,PrimaryImageTag,ThumbImageTag,BackdropImageTags,ImageTags');
   const data = await jfGet<{ Items?: JellyfinItem[] }>(url, token);
   return data?.Items ?? [];
 }
@@ -199,7 +202,7 @@ export async function getSimilarItems(
 ): Promise<JellyfinItem[]> {
   const url = new URL(`${baseUrl}/Items/${itemId}/Similar`);
   url.searchParams.set('Limit', String(limit));
-  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,RunTimeTicks,ProductionYear,MediaStreams,SeriesInfo');
+  url.searchParams.set('Fields', 'PrimaryImageAspectRatio,UserData,RunTimeTicks,ProductionYear,MediaStreams,SeriesInfo,PrimaryImageTag,BackdropImageTags,ThumbImageTag');
   const data = await jfGet<{ Items?: JellyfinItem[] }>(url, token);
   return data?.Items ?? [];
 }

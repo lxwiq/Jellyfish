@@ -68,6 +68,33 @@
   function isPlayed(e: any) { const u = e?.UserData ?? {}; return !!u?.Played || (u?.PlayCount ?? 0) > 0; }
 
   function playEpisode(id: string) { goto(`/play/${id}`); }
+
+  function episodeMetaLabel(e: any) {
+    const s = e?.ParentIndexNumber; const n = e?.IndexNumber;
+    if (s != null && n != null) return `Saison ${s} · Épisode ${n}`;
+    if (n != null) return `Épisode ${n}`;
+    return '';
+  }
+  function pickEpisodeImage(e: any): { src: string; step: string } {
+    const primaryTag = e?.PrimaryImageTag ?? e?.ImageTags?.Primary;
+    if (e?.ThumbImageTag) return { src: thumbUrl(baseUrl, token, e.Id, 270, e.ThumbImageTag), step: 'thumb' };
+    if (primaryTag) return { src: posterUrl(baseUrl, token, e.Id, 270, primaryTag), step: 'primary' };
+    if (Array.isArray(e?.BackdropImageTags) && e.BackdropImageTags.length > 0)
+      return { src: backdropUrl(baseUrl, token, e.Id, 270, e.BackdropImageTags[0]), step: 'backdrop' };
+    // As a last resort, request episode images without tag (server may still return one)
+    return { src: thumbUrl(baseUrl, token, e.Id, 270), step: 'thumbNT' };
+  }
+  function onEpisodeImgError(ev: Event, e: any) {
+    const img = ev.currentTarget as HTMLImageElement;
+    const step = (img.dataset.step as string) || 'thumb';
+    const primaryTag = e?.PrimaryImageTag ?? e?.ImageTags?.Primary;
+    if (step === 'thumb') { img.dataset.step = 'primary'; img.src = primaryTag ? posterUrl(baseUrl, token, e.Id, 270, primaryTag) : posterUrl(baseUrl, token, e.Id, 270); return; }
+    if (step === 'primary') { img.dataset.step = 'backdrop'; img.src = backdropUrl(baseUrl, token, e.Id, 270, e.BackdropImageTags?.[0]); return; }
+    if (step === 'backdrop') { img.dataset.step = 'thumbNT'; img.src = thumbUrl(baseUrl, token, e.Id, 270); return; }
+    // give up; hide broken image
+    img.style.display = 'none';
+  }
+
 </script>
 
 <SafeArea class="mx-auto w-full min-h-[100svh] px-0 sm:px-0 pb-safe">
@@ -85,7 +112,7 @@
   {:else if series}
     <!-- Backdrop header -->
     <div class="relative w-full h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80">
-      <img src={backdropUrl(baseUrl, token, series.Id, 720)} alt={title(series)} class="absolute inset-0 w-full h-full object-cover" />
+      <img src={backdropUrl(baseUrl, token, series.Id, 720, series.BackdropImageTags?.[0])} alt={title(series)} class="absolute inset-0 w-full h-full object-cover" />
       <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-background/0 h-24"></div>
     </div>
 
@@ -95,13 +122,13 @@
       <div class="flex gap-4">
         <div class="w-28 sm:w-36 shrink-0">
           <AspectRatio ratio={2/3} class="rounded-md overflow-hidden bg-secondary border">
-            <img src={posterUrl(baseUrl, token, series.Id, 540)} alt={title(series)} class="w-full h-full object-cover" />
+            <img src={posterUrl(baseUrl, token, series.Id, 540, series.ImageTags?.Primary)} alt={title(series)} class="w-full h-full object-cover" />
           </AspectRatio>
         </div>
         <div class="min-w-0 flex-1">
           <!-- Logo or title -->
           <div class="min-h-[40px] sm:min-h-[48px]">
-            <img src={logoUrl(baseUrl, token, series.Id, 120)} alt={title(series)} class="max-h-12 sm:max-h-16 object-contain" />
+            <img src={logoUrl(baseUrl, token, series.Id, 120, series.ImageTags?.Logo)} alt={title(series)} class="max-h-12 sm:max-h-16 object-contain" />
           </div>
           <h1 class="sr-only">{title(series)}</h1>
           {#if series.OriginalTitle && series.OriginalTitle !== series.Name}
@@ -139,7 +166,7 @@
                 <CarouselItem class="basis-[45%] xs:basis-[35%] sm:basis-[28%] md:basis-[22%] lg:basis-[18%]">
                   <div class="flex flex-col items-center text-center">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-secondary border">
-                      <img src={personImageUrl(baseUrl, token, p.Id, 200)} alt={p.Name} class="w-full h-full object-cover" />
+                      <img src={personImageUrl(baseUrl, token, p.Id, 200, p.PrimaryImageTag)} alt={p.Name} class="w-full h-full object-cover" />
                     </div>
                     <p class="mt-2 text-sm font-medium line-clamp-1 w-full">{p.Name}</p>
                     {#if p.Role}
@@ -183,12 +210,19 @@
               <div class="flex gap-3">
                 <div class="w-32 shrink-0">
                   <AspectRatio ratio={16/9} class="rounded-md overflow-hidden bg-secondary">
-                    <img src={e.ThumbImageTag ? thumbUrl(baseUrl, token, e.Id, 270) : backdropUrl(baseUrl, token, e.Id, 270)} alt={e.Name} class="w-full h-full object-cover" />
+                    <img
+                      src={pickEpisodeImage(e).src}
+                      data-step={pickEpisodeImage(e).step}
+                      alt={e.Name}
+                      class="w-full h-full object-cover"
+                      onerror={(ev) => onEpisodeImgError(ev, e)}
+                    />
                   </AspectRatio>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <p class="font-medium line-clamp-1">{epDisplay(e)} {e.Name}</p>
+                  <p class="text-xs text-muted-foreground">{episodeMetaLabel(e)}</p>
+                  <div class="mt-0.5 flex items-center gap-2">
+                    <p class="font-medium line-clamp-1">{e.Name}</p>
                     {#if isPlayed(e)}<Badge variant="success">Vu</Badge>{/if}
                   </div>
                   {#if e.Overview}<p class="mt-1 text-sm text-muted-foreground line-clamp-2">{e.Overview}</p>{/if}

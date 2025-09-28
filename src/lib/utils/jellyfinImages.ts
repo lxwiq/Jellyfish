@@ -1,24 +1,34 @@
-export function posterUrl(baseUrl: string, token: string, itemId: string, height = 450) {
-  const url = `${baseUrl}/Items/${itemId}/Images/Primary?fillHeight=${height}&quality=90&tag=`;
-  return `${url}&api_key=${encodeURIComponent(token)}`;
+export function posterUrl(baseUrl: string, token: string, itemId: string, height = 450, tag?: string) {
+  const qp = new URLSearchParams({ fillHeight: String(height), quality: '90' });
+  if (tag) qp.set('tag', tag);
+  qp.set('api_key', token);
+  return `${baseUrl}/Items/${itemId}/Images/Primary?${qp.toString()}`;
 }
 
-export function backdropUrl(baseUrl: string, token: string, itemId: string, height = 270) {
-  const url = `${baseUrl}/Items/${itemId}/Images/Backdrop?fillHeight=${height}&quality=85&tag=`;
-  return `${url}&api_key=${encodeURIComponent(token)}`;
+export function backdropUrl(baseUrl: string, token: string, itemId: string, height = 270, tag?: string) {
+  const qp = new URLSearchParams({ fillHeight: String(height), quality: '85' });
+  if (tag) qp.set('tag', tag);
+  qp.set('api_key', token);
+  return `${baseUrl}/Items/${itemId}/Images/Backdrop?${qp.toString()}`;
 }
-export function thumbUrl(baseUrl: string, token: string, itemId: string, height = 270) {
-  const url = `${baseUrl}/Items/${itemId}/Images/Thumb?fillHeight=${height}&quality=85&tag=`;
-  return `${url}&api_key=${encodeURIComponent(token)}`;
+export function thumbUrl(baseUrl: string, token: string, itemId: string, height = 270, tag?: string) {
+  const qp = new URLSearchParams({ fillHeight: String(height), quality: '85' });
+  if (tag) qp.set('tag', tag);
+  qp.set('api_key', token);
+  return `${baseUrl}/Items/${itemId}/Images/Thumb?${qp.toString()}`;
 }
 
-export function logoUrl(baseUrl: string, token: string, itemId: string, height = 100) {
-  const url = `${baseUrl}/Items/${itemId}/Images/Logo?fillHeight=${height}&quality=90&tag=`;
-  return `${url}&api_key=${encodeURIComponent(token)}`;
+export function logoUrl(baseUrl: string, token: string, itemId: string, height = 100, tag?: string) {
+  const qp = new URLSearchParams({ fillHeight: String(height), quality: '90' });
+  if (tag) qp.set('tag', tag);
+  qp.set('api_key', token);
+  return `${baseUrl}/Items/${itemId}/Images/Logo?${qp.toString()}`;
 }
-export function personImageUrl(baseUrl: string, token: string, personId: string, height = 160) {
-  const url = `${baseUrl}/Persons/${personId}/Images/Primary?fillHeight=${height}&quality=85&tag=`;
-  return `${url}&api_key=${encodeURIComponent(token)}`;
+export function personImageUrl(baseUrl: string, token: string, personId: string, height = 160, tag?: string) {
+  const qp = new URLSearchParams({ fillHeight: String(height), quality: '85' });
+  if (tag) qp.set('tag', tag);
+  qp.set('api_key', token);
+  return `${baseUrl}/Items/${personId}/Images/Primary?${qp.toString()}`;
 }
 
 

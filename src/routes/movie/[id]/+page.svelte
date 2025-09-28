@@ -102,7 +102,7 @@
   {:else if item}
     <!-- Backdrop header -->
     <div class="relative w-full h-48 sm:h-56 md:h-64 lg:h-72 xl:h-80">
-      <img src={backdropUrl(baseUrl, token, item.Id, 720)} alt={title(item)} class="absolute inset-0 w-full h-full object-cover" />
+      <img src={backdropUrl(baseUrl, token, item.Id, 720, item.BackdropImageTags?.[0])} alt={title(item)} class="absolute inset-0 w-full h-full object-cover" />
       <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/90 to-background/0 h-24"></div>
     </div>
 
@@ -113,13 +113,13 @@
       <div class="flex gap-4">
         <div class="w-28 sm:w-36 shrink-0">
           <AspectRatio ratio={2/3} class="rounded-md overflow-hidden bg-secondary border">
-            <img src={posterUrl(baseUrl, token, item.Id, 540)} alt={title(item)} class="w-full h-full object-cover" />
+            <img src={posterUrl(baseUrl, token, item.Id, 540, item.ImageTags?.Primary)} alt={title(item)} class="w-full h-full object-cover" />
           </AspectRatio>
         </div>
         <div class="min-w-0 flex-1">
           <!-- Logo or title -->
           <div class="min-h-[40px] sm:min-h-[48px]">
-            <img src={logoUrl(baseUrl, token, item.Id, 120)} alt={title(item)} class="max-h-12 sm:max-h-16 object-contain" />
+            <img src={logoUrl(baseUrl, token, item.Id, 120, item.ImageTags?.Logo)} alt={title(item)} class="max-h-12 sm:max-h-16 object-contain" />
           </div>
           <h1 class="sr-only">{title(item)}</h1>
           <div class="mt-2 flex flex-wrap gap-2">
@@ -159,7 +159,7 @@
                 <CarouselItem class="basis-[45%] xs:basis-[35%] sm:basis-[28%] md:basis-[22%] lg:basis-[18%]">
                   <div class="flex flex-col items-center text-center">
                     <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-secondary border">
-                      <img src={personImageUrl(baseUrl, token, p.Id, 200)} alt={p.Name} class="w-full h-full object-cover" />
+                      <img src={personImageUrl(baseUrl, token, p.Id, 200, p.PrimaryImageTag)} alt={p.Name} class="w-full h-full object-cover" />
                     </div>
                     <p class="mt-2 text-sm font-medium line-clamp-1 w-full">{p.Name}</p>
                     {#if p.Role}

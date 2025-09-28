@@ -27,18 +27,18 @@
   } = $props();
 
   function pickLandscape(it: any): { src: string; step: string } {
-    if (it?.ThumbImageTag) return { src: thumbUrl(baseUrl, token, it.Id, 270), step: 'thumb' };
+    if (it?.ThumbImageTag) return { src: thumbUrl(baseUrl, token, it.Id, 270, it.ThumbImageTag), step: 'thumb' };
     if (Array.isArray(it?.BackdropImageTags) && it.BackdropImageTags.length > 0)
-      return { src: backdropUrl(baseUrl, token, it.Id, 270), step: 'backdrop' };
+      return { src: backdropUrl(baseUrl, token, it.Id, 270, it.BackdropImageTags[0]), step: 'backdrop' };
     if (it?.SeriesId) return { src: thumbUrl(baseUrl, token, it.SeriesId, 270), step: 'seriesThumb' };
-    return { src: posterUrl(baseUrl, token, it.Id, 600), step: 'poster' };
+    return { src: posterUrl(baseUrl, token, it.Id, 600, it.ImageTags?.Primary), step: 'poster' };
   }
   function setFallbackImage(e: Event, it: any) {
     const img = e.currentTarget as HTMLImageElement;
     const step = (img.dataset.step as string) || 'thumb';
     if (step === 'thumb') {
       img.dataset.step = 'backdrop';
-      img.src = backdropUrl(baseUrl, token, it.Id, 270);
+      img.src = backdropUrl(baseUrl, token, it.Id, 270, it.BackdropImageTags?.[0]);
       return;
     }
     if (step === 'backdrop') {
@@ -47,7 +47,7 @@
         img.src = thumbUrl(baseUrl, token, it.SeriesId, 270);
       } else {
         img.dataset.step = 'poster';
-        img.src = posterUrl(baseUrl, token, it.Id, 600);
+        img.src = posterUrl(baseUrl, token, it.Id, 600, it.ImageTags?.Primary);
       }
       return;
     }
@@ -58,7 +58,7 @@
     }
     if (step === 'seriesBackdrop') {
       img.dataset.step = 'poster';
-      img.src = posterUrl(baseUrl, token, it.Id, 600);
+      img.src = posterUrl(baseUrl, token, it.Id, 600, it.ImageTags?.Primary);
       return;
     }
   }
