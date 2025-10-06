@@ -31,9 +31,9 @@ class MediaCard extends ConsumerWidget {
     final sizes = CardSizeHelper.getSizes(isDesktop, effectiveIsTablet);
     final cardWidth = sizes.mediaWidth;
 
-    // Optimiser les paramètres d'image
+    // Optimiser les paramètres d'image - utiliser backdrop au lieu de poster
     final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
-    final imageUrl = getItemImageUrl(ref, item, maxWidth: optimalWidth);
+    final imageUrl = getItemCardBackdropUrl(ref, item, maxWidth: optimalWidth);
     final title = item.name ?? 'Sans titre';
     final subtitle = getResumeTimeText(item);
     final progress = getProgressPercentage(item);
@@ -70,6 +70,7 @@ class MediaCard extends ConsumerWidget {
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
+                          alignment: Alignment.center,
                           memCacheWidth: optimalWidth,
                           cacheManager: CustomCacheManager(),
                           placeholder: (context, url) => Container(

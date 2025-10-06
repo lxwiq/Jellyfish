@@ -30,9 +30,9 @@ class EpisodeCard extends ConsumerWidget {
     final sizes = CardSizeHelper.getSizes(isDesktop, effectiveIsTablet);
     final cardWidth = sizes.episodeWidth;
 
-    // Optimiser les paramètres d'image
+    // Optimiser les paramètres d'image - utiliser backdrop pour les épisodes
     final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
-    final imageUrl = getItemImageUrl(ref, item, maxWidth: optimalWidth);
+    final imageUrl = getItemCardBackdropUrl(ref, item, maxWidth: optimalWidth);
     final title = item.seriesName ?? item.name ?? 'Sans titre';
     final subtitle = 'S${item.parentIndexNumber ?? 0}:E${item.indexNumber ?? 0}';
 
@@ -66,6 +66,7 @@ class EpisodeCard extends ConsumerWidget {
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
+                          alignment: Alignment.center,
                           memCacheWidth: optimalWidth,
                           cacheManager: CustomCacheManager(),
                           placeholder: (context, url) => Container(

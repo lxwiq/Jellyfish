@@ -281,6 +281,42 @@ class JellyfinService {
     }
   }
 
+  /// Récupère des items pour le hero carousel avec des critères optimisés
+  /// Retourne des films et séries avec de bonnes notes, des backdrops et des descriptions
+  Future<List<BaseItemDto>> getHeroItems(String userId, {int limit = 20}) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.itemsGet(
+        userId: userId,
+        limit: limit,
+        recursive: true,
+        sortBy: [ItemSortBy.datecreated, ItemSortBy.communityrating],
+        sortOrder: [SortOrder.descending],
+        includeItemTypes: [BaseItemKind.movie, BaseItemKind.series],
+        minCommunityRating: 6.0, // Minimum 6/10
+        hasOverview: true, // Doit avoir une description
+        enableUserData: true,
+        enableImages: true,
+        imageTypeLimit: 1,
+        fields: [
+          ItemFields.overview,
+          ItemFields.genres,
+        ],
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!.items ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('❌ Erreur lors de la récupération des items hero: $e');
+      return [];
+    }
+  }
+
   /// Récupère les bibliothèques/vues de l'utilisateur
   Future<List<BaseItemDto>> getUserViews(String userId) async {
     if (_api == null) {
@@ -353,6 +389,19 @@ class JellyfinService {
 
     final queryString = params.isEmpty ? '' : '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
     return '$_currentServerUrl/Items/$itemId/Images/Thumb$queryString';
+  }
+
+  /// Récupère l'URL d'une image trickplay (capture d'écran de la vidéo)
+  /// Utilisé comme fallback quand pas de backdrop disponible
+  String? getTrickplayUrl(String itemId, {int? width, int index = 0, String? mediaSourceId}) {
+    if (_currentServerUrl == null) return null;
+
+    final effectiveWidth = width ?? 320;
+    final params = <String, String>{};
+    if (mediaSourceId != null) params['mediaSourceId'] = mediaSourceId;
+
+    final queryString = params.isEmpty ? '' : '?${params.entries.map((e) => '${e.key}=${e.value}').join('&')}';
+    return '$_currentServerUrl/Videos/$itemId/Trickplay/$effectiveWidth/$index.jpg$queryString';
   }
 
   /// Récupère les items d'une bibliothèque avec pagination et filtres

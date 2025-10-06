@@ -63,6 +63,40 @@ final latestItemsProvider = FutureProvider.autoDispose<List<BaseItemDto>>((ref) 
   }).toList();
 });
 
+/// Provider pour les items du hero carousel
+/// Uniquement des films et séries (pas d'épisodes, saisons ou items en cours)
+final heroItemsProvider = FutureProvider.autoDispose<List<BaseItemDto>>((ref) async {
+  final authState = ref.watch(authStateProvider);
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (authState.user == null || !jellyfinService.isInitialized) {
+    return [];
+  }
+
+  // Récupérer des items optimisés pour le hero (films et séries avec bonnes notes)
+  final heroItems = await jellyfinService.getHeroItems(authState.user!.id, limit: 30);
+
+  // Filtrer strictement pour ne garder que films et séries avec backdrop
+  final filteredItems = heroItems.where((item) {
+    if (item.id == null) return false;
+
+    // Vérifier le type : uniquement Movie ou Series
+    final itemType = item.type?.value?.toLowerCase();
+    if (itemType != 'movie' && itemType != 'series') return false;
+
+    // Doit avoir un backdrop
+    final hasBackdrop = item.backdropImageTags != null && item.backdropImageTags!.isNotEmpty;
+
+    return hasBackdrop;
+  }).toList();
+
+  // Mélanger pour la variété
+  filteredItems.shuffle();
+
+  // Retourner jusqu'à 10 items
+  return filteredItems.take(10).toList();
+});
+
 /// Provider pour les derniers éléments ajoutés par bibliothèque
 final latestItemsByLibraryProvider = FutureProvider.autoDispose.family<List<BaseItemDto>, String>((ref, libraryId) async {
   final authState = ref.watch(authStateProvider);
@@ -91,12 +125,12 @@ final userLibrariesProvider = FutureProvider.autoDispose<List<BaseItemDto>>((ref
   return await jellyfinService.getUserViews(authState.user!.id);
 });
 
-/// Helper pour obtenir l'URL d'une image
+/// Helper pour obtenir l'URL d'une image Primary (poster)
 String? getItemImageUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth, int? maxHeight}) {
   final jellyfinService = ref.watch(jellyfinServiceProvider);
-  
+
   if (item.id == null) return null;
-  
+
   return jellyfinService.getImageUrl(
     item.id!,
     tag: item.imageTags?['Primary'],
@@ -105,16 +139,14 @@ String? getItemImageUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth, int? ma
   );
 }
 
-/// Helper pour obtenir l'URL d'un backdrop
-/// Pour les épisodes, utilise le backdrop de la saison ou de la série
-String? getItemBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
+/// Helper pour obtenir l'URL d'une image backdrop haute qualité pour les cards
+String? getItemCardBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
   final jellyfinService = ref.watch(jellyfinServiceProvider);
 
   if (item.id == null) return null;
 
-  // Pour les épisodes, essayer d'utiliser le backdrop du parent (saison ou série)
+  // Pour les épisodes, utiliser le backdrop de la série parente
   if (item.type?.value == 'Episode') {
-    // Essayer d'abord avec le backdrop du parent
     if (item.parentBackdropItemId != null &&
         item.parentBackdropImageTags != null &&
         item.parentBackdropImageTags!.isNotEmpty) {
@@ -124,16 +156,6 @@ String? getItemBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
         maxWidth: maxWidth,
       );
     }
-
-    // Sinon, essayer avec l'ID de la saison
-    if (item.seasonId != null) {
-      return jellyfinService.getBackdropUrl(
-        item.seasonId!,
-        maxWidth: maxWidth,
-      );
-    }
-
-    // En dernier recours, utiliser l'ID de la série
     if (item.seriesId != null) {
       return jellyfinService.getBackdropUrl(
         item.seriesId!,
@@ -142,15 +164,55 @@ String? getItemBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
     }
   }
 
-  // Pour les autres types d'items, utiliser le backdrop de l'item lui-même
+  // Pour les films et séries, utiliser leur backdrop
   final backdropTags = item.backdropImageTags;
-  final tag = (backdropTags != null && backdropTags.isNotEmpty) ? backdropTags.first : null;
+  if (backdropTags != null && backdropTags.isNotEmpty) {
+    return jellyfinService.getBackdropUrl(
+      item.id!,
+      tag: backdropTags.first,
+      maxWidth: maxWidth,
+    );
+  }
 
-  return jellyfinService.getBackdropUrl(
-    item.id!,
-    tag: tag,
-    maxWidth: maxWidth,
-  );
+  return null;
+}
+
+/// Helper pour obtenir l'URL d'une image backdrop haute qualité pour le hero carousel
+String? getItemBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (item.id == null) return null;
+
+  // Pour les épisodes, utiliser le backdrop de la série parente
+  if (item.type?.value == 'Episode') {
+    if (item.parentBackdropItemId != null &&
+        item.parentBackdropImageTags != null &&
+        item.parentBackdropImageTags!.isNotEmpty) {
+      return jellyfinService.getBackdropUrl(
+        item.parentBackdropItemId!,
+        tag: item.parentBackdropImageTags!.first,
+        maxWidth: maxWidth,
+      );
+    }
+    if (item.seriesId != null) {
+      return jellyfinService.getBackdropUrl(
+        item.seriesId!,
+        maxWidth: maxWidth,
+      );
+    }
+  }
+
+  // Pour les films et séries, utiliser leur backdrop
+  final backdropTags = item.backdropImageTags;
+  if (backdropTags != null && backdropTags.isNotEmpty) {
+    return jellyfinService.getBackdropUrl(
+      item.id!,
+      tag: backdropTags.first,
+      maxWidth: maxWidth,
+    );
+  }
+
+  return null;
 }
 
 /// Helper pour formater la durée de lecture restante

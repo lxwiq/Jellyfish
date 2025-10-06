@@ -7,6 +7,8 @@ import '../../../theme/app_colors.dart';
 import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../services/custom_cache_manager.dart';
+import '../../item_detail/item_detail_screen.dart';
+import '../../video_player/video_player_screen.dart';
 
 /// Hero carousel en haut de la page d'accueil
 class HomeHeroCarousel extends ConsumerStatefulWidget {
@@ -72,10 +74,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    final latestItemsAsync = ref.watch(latestItemsProvider);
+    final heroItemsAsync = ref.watch(heroItemsProvider);
 
     // Écouter les changements de données pour redémarrer le timer
-    ref.listen<AsyncValue<List<BaseItemDto>>>(latestItemsProvider, (previous, next) {
+    ref.listen<AsyncValue<List<BaseItemDto>>>(heroItemsProvider, (previous, next) {
       next.whenData((items) {
         if (items.isNotEmpty) {
           _startAutoScroll(items.length);
@@ -83,7 +85,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
       });
     });
 
-    return latestItemsAsync.when(
+    return heroItemsAsync.when(
       data: (items) {
         if (items.isEmpty) {
           return _buildEmptyHero(context);
@@ -160,10 +162,38 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
   }
 
   Widget _buildHeroSlide(BaseItemDto item) {
-    final backdropUrl = getItemBackdropUrl(ref, item, maxWidth: 1920);
+    // Adapter la taille de l'image à la largeur réelle de l'écran
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Demander une image en haute résolution (1.5x la largeur de l'écran pour la netteté)
+    final backdropWidth = (screenWidth * 1.5).round();
+    final backdropUrl = getItemBackdropUrl(ref, item, maxWidth: backdropWidth);
     final title = item.name ?? 'Sans titre';
     final overview = item.overview ?? 'Aucune description disponible';
     final year = item.productionYear?.toString() ?? '';
+
+    // Déterminer le type d'item et le badge approprié
+    final itemType = item.type?.value?.toLowerCase();
+    final isMovie = itemType == 'movie';
+    final isSeries = itemType == 'series';
+    final hasProgress = item.userData?.playbackPositionTicks != null &&
+                        item.userData!.playbackPositionTicks! > 0;
+
+    // Construire les métadonnées
+    final metadata = <String>[];
+    if (year.isNotEmpty) metadata.add(year);
+    if (isMovie && item.officialRating != null && item.officialRating!.isNotEmpty) {
+      metadata.add(item.officialRating!);
+    }
+    if (isSeries) {
+      final seriesMetadata = getSeriesMetadata(item);
+      if (seriesMetadata != null) metadata.add(seriesMetadata);
+    }
+    if (item.communityRating != null) {
+      metadata.add('⭐ ${item.communityRating!.toStringAsFixed(1)}');
+    }
+
+    // Genres
+    final genres = item.genres?.take(3).join(' • ') ?? '';
 
     return Stack(
       children: [
@@ -173,8 +203,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
             child: CachedNetworkImage(
               imageUrl: backdropUrl,
               fit: BoxFit.cover,
-              memCacheWidth: widget.isDesktop ? 1920 : 1280,
-              memCacheHeight: widget.isDesktop ? 1080 : 720,
+              alignment: Alignment.center,
+              memCacheWidth: backdropWidth,
               cacheManager: CustomCacheManager(),
               fadeInDuration: const Duration(milliseconds: 300),
               fadeOutDuration: const Duration(milliseconds: 300),
@@ -244,24 +274,26 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Badge Tendance
+              // Badge (Tendance, En cours, Nouveau)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.jellyfinPurple.withValues(alpha: 0.9),
+                  color: hasProgress
+                      ? AppColors.jellyfinBlue.withValues(alpha: 0.9)
+                      : AppColors.jellyfinPurple.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      IconsaxPlusBold.star_1,
+                    Icon(
+                      hasProgress ? IconsaxPlusBold.play_circle : IconsaxPlusBold.star_1,
                       color: Colors.white,
                       size: 16,
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Tendance',
+                      hasProgress ? 'En cours' : 'Nouveau',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -290,14 +322,27 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
                 overflow: TextOverflow.ellipsis,
               ),
 
-              if (year.isNotEmpty) ...[
+              if (metadata.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
-                  year,
+                  metadata.join(' • '),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.white.withValues(alpha: 0.8),
                     fontSize: widget.isDesktop ? 18 : 16,
                   ),
+                ),
+              ],
+
+              if (genres.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  genres,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: widget.isDesktop ? 16 : 14,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
 
@@ -323,10 +368,27 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
                   Flexible(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // TODO: Lecture
+                        if (item.id != null) {
+                          // Si l'item a une position de lecture, reprendre
+                          final startPosition = item.userData?.playbackPositionTicks;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => VideoPlayerScreen(
+                                itemId: item.id!,
+                                item: item,
+                                startPositionTicks: startPosition,
+                              ),
+                            ),
+                          );
+                        }
                       },
                       icon: const Icon(IconsaxPlusBold.play, size: 18),
-                      label: const Text('Lecture'),
+                      label: Text(
+                        item.userData?.playbackPositionTicks != null &&
+                        item.userData!.playbackPositionTicks! > 0
+                            ? 'Reprendre'
+                            : 'Lecture',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.jellyfinPurple,
                         foregroundColor: Colors.white,
@@ -344,7 +406,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
                   Flexible(
                     child: OutlinedButton.icon(
                       onPressed: () {
-                        // TODO: Plus d'infos
+                        if (item.id != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => ItemDetailScreen(
+                                itemId: item.id!,
+                                initialItem: item,
+                              ),
+                            ),
+                          );
+                        }
                       },
                       icon: const Icon(IconsaxPlusLinear.info_circle, size: 18),
                       label: const Text('Infos'),
