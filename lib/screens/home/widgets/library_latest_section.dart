@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
+import '../../../widgets/card_constants.dart';
 import '../../library/library_screen.dart';
 import 'poster_card.dart';
 
@@ -99,6 +101,10 @@ class _LibraryCarousel extends ConsumerWidget {
 
     final latestItemsAsync = ref.watch(latestItemsByLibraryProvider(libraryId));
 
+    // Calculer la hauteur basée sur les constantes
+    final sizes = CardSizeHelper.getSizes(isDesktop, isTablet);
+    final sectionHeight = sizes.posterTotalHeight;
+
     return latestItemsAsync.when(
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
@@ -156,24 +162,33 @@ class _LibraryCarousel extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Carousel horizontal
             SizedBox(
-              height: isDesktop ? 280 : (isTablet ? 240 : 220),
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: PosterCard(
-                      item: item,
-                      width: isDesktop ? 180 : (isTablet ? 150 : 130),
-                    ),
-                  );
-                },
+              height: sectionHeight,
+              child: ScrollConfiguration(
+                behavior: ScrollConfiguration.of(context).copyWith(
+                  dragDevices: {
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.mouse,
+                  },
+                ),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: PosterCard(
+                        item: item,
+                        isDesktop: isDesktop,
+                        isTablet: isTablet,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ],

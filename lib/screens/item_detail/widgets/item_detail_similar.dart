@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../providers/item_detail_provider.dart';
+import '../../../widgets/card_constants.dart';
 import '../../home/widgets/poster_card.dart';
 
 /// Widget affichant les items similaires
@@ -19,6 +20,12 @@ class ItemDetailSimilar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final similarItemsAsync = ref.watch(similarItemsProvider(itemId));
+
+    // Calculer la hauteur basée sur les constantes
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600 && screenWidth < 900;
+    final sizes = CardSizeHelper.getSizes(isDesktop, isTablet);
+    final sectionHeight = sizes.posterTotalHeight;
 
     return similarItemsAsync.when(
       data: (items) {
@@ -46,7 +53,7 @@ class ItemDetailSimilar extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: isDesktop ? 280 : 220,
+              height: sectionHeight,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: items.length,
@@ -56,7 +63,8 @@ class ItemDetailSimilar extends ConsumerWidget {
                     padding: const EdgeInsets.only(right: 12),
                     child: PosterCard(
                       item: item,
-                      width: isDesktop ? 180 : 130,
+                      isDesktop: isDesktop,
+                      isTablet: isTablet,
                     ),
                   );
                 },
@@ -65,9 +73,9 @@ class ItemDetailSimilar extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox(
-        height: 220,
-        child: Center(
+      loading: () => SizedBox(
+        height: sectionHeight,
+        child: const Center(
           child: CircularProgressIndicator(
             color: AppColors.jellyfinPurple,
           ),

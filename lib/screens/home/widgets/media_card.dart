@@ -7,32 +7,44 @@ import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../item_detail/item_detail_screen.dart';
 import '../../../services/custom_cache_manager.dart';
+import '../../../widgets/card_constants.dart';
 
 /// Carte pour afficher un média en cours de lecture
 class MediaCard extends ConsumerWidget {
   final BaseItemDto item;
   final bool isDesktop;
+  final bool? isTablet;
 
   const MediaCard({
     super.key,
     required this.item,
     required this.isDesktop,
+    this.isTablet,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final imageUrl = getItemImageUrl(ref, item, maxWidth: 600);
+    // Déterminer les tailles
+    final screenWidth = MediaQuery.of(context).size.width;
+    final effectiveIsTablet = isTablet ?? (screenWidth >= 600 && screenWidth < 900);
+    final sizes = CardSizeHelper.getSizes(isDesktop, effectiveIsTablet);
+    final cardWidth = sizes.mediaWidth;
+
+    // Optimiser les paramètres d'image
+    final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
+    final imageUrl = getItemImageUrl(ref, item, maxWidth: optimalWidth);
     final title = item.name ?? 'Sans titre';
     final subtitle = getResumeTimeText(item);
     final progress = getProgressPercentage(item);
 
-    return Container(
-      width: isDesktop ? 320 : 280,
-      margin: const EdgeInsets.only(right: 16),
+    return SizedBox(
+      width: cardWidth,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
+          // Image avec ratio d'aspect fixe
+          AspectRatio(
+            aspectRatio: CardConstants.mediaAspectRatio,
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.background3,
@@ -55,7 +67,7 @@ class MediaCard extends ConsumerWidget {
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
                           fit: BoxFit.cover,
-                          memCacheWidth: 600,
+                          memCacheWidth: optimalWidth,
                           cacheManager: CustomCacheManager(),
                           placeholder: (context, url) => Container(
                             color: AppColors.surface1,
@@ -164,25 +176,31 @@ class MediaCard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          // Titre
           Text(
             title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.text6,
               fontWeight: FontWeight.w600,
+              height: 1.2,
+              fontSize: 12,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          if (subtitle.isNotEmpty)
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.text3,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          const SizedBox(height: 2),
+          // Sous-titre
+          Text(
+            subtitle.isNotEmpty ? subtitle : '',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.text3,
+              height: 1.2,
+              fontSize: 11,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );

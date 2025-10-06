@@ -40,7 +40,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 500) {
       final libraryId = widget.library.id;
       if (libraryId != null) {
-        ref.read(libraryProvider(libraryId).notifier).loadNextPage();
+        final params = LibraryProviderParams(
+          libraryId: libraryId,
+          collectionType: widget.library.collectionType?.value,
+        );
+        ref.read(libraryProvider(params).notifier).loadNextPage();
       }
     }
   }
@@ -80,7 +84,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       );
     }
 
-    final libraryState = ref.watch(libraryProvider(libraryId));
+    final params = LibraryProviderParams(
+      libraryId: libraryId,
+      collectionType: widget.library.collectionType?.value,
+    );
+    final libraryState = ref.watch(libraryProvider(params));
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 900;
 
@@ -204,7 +212,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: () {
-                          ref.read(libraryProvider(libraryId).notifier).refresh();
+                          final params = LibraryProviderParams(
+                            libraryId: libraryId,
+                            collectionType: widget.library.collectionType?.value,
+                          );
+                          ref.read(libraryProvider(params).notifier).refresh();
                         },
                         child: const Text('Réessayer'),
                       ),

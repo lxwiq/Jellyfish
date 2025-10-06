@@ -62,15 +62,31 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
   final String libraryId;
   final JellyfinService jellyfinService;
   final String userId;
-  
+  final String? collectionType;
+
   static const int _pageSize = 50;
 
   LibraryNotifier({
     required this.libraryId,
     required this.jellyfinService,
     required this.userId,
-  }) : super(const LibraryState()) {
+    this.collectionType,
+  }) : super(_getInitialState(collectionType)) {
     loadInitialItems();
+  }
+
+  /// Retourne l'état initial avec les filtres par défaut selon le type de collection
+  static LibraryState _getInitialState(String? collectionType) {
+    final typeStr = collectionType?.toString().toLowerCase() ?? '';
+
+    // Pour les bibliothèques de séries, filtrer uniquement les séries par défaut
+    if (typeStr == 'tvshows') {
+      return const LibraryState(
+        itemTypeFilter: [BaseItemKind.series],
+      );
+    }
+
+    return const LibraryState();
   }
 
   /// Charge les premiers items
@@ -170,9 +186,31 @@ class LibraryNotifier extends StateNotifier<LibraryState> {
   }
 }
 
+/// Paramètres pour le provider de bibliothèque
+class LibraryProviderParams {
+  final String libraryId;
+  final String? collectionType;
+
+  const LibraryProviderParams({
+    required this.libraryId,
+    this.collectionType,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LibraryProviderParams &&
+          runtimeType == other.runtimeType &&
+          libraryId == other.libraryId &&
+          collectionType == other.collectionType;
+
+  @override
+  int get hashCode => libraryId.hashCode ^ collectionType.hashCode;
+}
+
 /// Provider pour une bibliothèque spécifique
-final libraryProvider = StateNotifierProvider.family<LibraryNotifier, LibraryState, String>(
-  (ref, libraryId) {
+final libraryProvider = StateNotifierProvider.family<LibraryNotifier, LibraryState, LibraryProviderParams>(
+  (ref, params) {
     final authState = ref.watch(authStateProvider);
     final jellyfinService = ref.watch(jellyfinServiceProvider);
 
@@ -181,9 +219,10 @@ final libraryProvider = StateNotifierProvider.family<LibraryNotifier, LibrarySta
     }
 
     return LibraryNotifier(
-      libraryId: libraryId,
+      libraryId: params.libraryId,
       jellyfinService: jellyfinService,
       userId: authState.user!.id,
+      collectionType: params.collectionType,
     );
   },
 );

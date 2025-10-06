@@ -7,30 +7,46 @@ import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../item_detail/item_detail_screen.dart';
 import '../../../services/custom_cache_manager.dart';
+import '../../../widgets/card_constants.dart';
 
 /// Carte poster simple pour afficher un film/série
 class PosterCard extends ConsumerWidget {
   final BaseItemDto item;
-  final double width;
+  final double? width; // Optionnel, calculé automatiquement si non fourni
+  final bool? isDesktop;
+  final bool? isTablet;
 
   const PosterCard({
     super.key,
     required this.item,
-    required this.width,
+    this.width,
+    this.isDesktop,
+    this.isTablet,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final imageUrl = getItemImageUrl(ref, item, maxWidth: 400);
+    // Déterminer la largeur et les paramètres d'écran
+    final screenWidth = MediaQuery.of(context).size.width;
+    final effectiveIsDesktop = isDesktop ?? screenWidth >= 900;
+    final effectiveIsTablet = isTablet ?? (screenWidth >= 600 && screenWidth < 900);
+
+    final sizes = CardSizeHelper.getSizes(effectiveIsDesktop, effectiveIsTablet);
+    final cardWidth = width ?? sizes.posterWidth;
+
+    // Optimiser les paramètres d'image
+    final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
+    final imageUrl = getItemImageUrl(ref, item, maxWidth: optimalWidth);
     final title = item.name ?? 'Sans titre';
 
     return SizedBox(
-      width: width,
+      width: cardWidth,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image
-          Expanded(
+          // Image avec ratio d'aspect fixe
+          AspectRatio(
+            aspectRatio: CardConstants.posterAspectRatio,
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
@@ -63,7 +79,7 @@ class PosterCard extends ConsumerWidget {
                         ? CachedNetworkImage(
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            memCacheWidth: 400,
+                            memCacheWidth: optimalWidth,
                             cacheManager: CustomCacheManager(),
                             placeholder: (context, url) => Container(
                               color: AppColors.surface1,
@@ -100,25 +116,19 @@ class PosterCard extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Titre
+          const SizedBox(height: 6),
+          // Titre avec hauteur fixe pour éviter la déformation
           Text(
             title,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
               color: AppColors.text1,
+              height: 1.2,
+              fontSize: 12,
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          // Année ou info supplémentaire
-          if (item.productionYear != null)
-            Text(
-              item.productionYear.toString(),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.text3,
-              ),
-            ),
         ],
       ),
     );

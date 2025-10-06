@@ -18,7 +18,11 @@ class LibraryFilters extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final libraryState = ref.watch(libraryProvider(libraryId));
+    final params = LibraryProviderParams(
+      libraryId: libraryId,
+      collectionType: collectionType,
+    );
+    final libraryState = ref.watch(libraryProvider(params));
 
     return Container(
       color: AppColors.background2,
@@ -144,8 +148,12 @@ class LibraryFilters extends ConsumerWidget {
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
-          final currentOrder = ref.read(libraryProvider(libraryId)).sortOrder;
-          ref.read(libraryProvider(libraryId).notifier).changeSorting(sortBy, currentOrder);
+          final params = LibraryProviderParams(
+            libraryId: libraryId,
+            collectionType: collectionType,
+          );
+          final currentOrder = ref.read(libraryProvider(params)).sortOrder;
+          ref.read(libraryProvider(params).notifier).changeSorting(sortBy, currentOrder);
         }
       },
       selectedColor: AppColors.jellyfinPurple.withValues(alpha: 0.2),
@@ -184,8 +192,12 @@ class LibraryFilters extends ConsumerWidget {
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
-          final currentSortBy = ref.read(libraryProvider(libraryId)).sortBy;
-          ref.read(libraryProvider(libraryId).notifier).changeSorting(currentSortBy, order);
+          final params = LibraryProviderParams(
+            libraryId: libraryId,
+            collectionType: collectionType,
+          );
+          final currentSortBy = ref.read(libraryProvider(params)).sortBy;
+          ref.read(libraryProvider(params).notifier).changeSorting(currentSortBy, order);
         }
       },
       selectedColor: AppColors.jellyfinPurple.withValues(alpha: 0.2),
@@ -228,7 +240,11 @@ class LibraryFilters extends ConsumerWidget {
                   newFilter = state.itemTypeFilter?.where((t) => t != filter.type).toList();
                   if (newFilter?.isEmpty ?? true) newFilter = null;
                 }
-                ref.read(libraryProvider(libraryId).notifier).changeItemTypeFilter(newFilter);
+                final params = LibraryProviderParams(
+                  libraryId: libraryId,
+                  collectionType: collectionType,
+                );
+                ref.read(libraryProvider(params).notifier).changeItemTypeFilter(newFilter);
               },
               selectedColor: AppColors.jellyfinPurple.withValues(alpha: 0.2),
               checkmarkColor: AppColors.jellyfinPurple,
