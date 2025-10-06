@@ -1,11 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shorebird_code_push/shorebird_code_push.dart' as shorebird;
 
 /// Service pour gérer les mises à jour Shorebird
 /// En mode debug, ce service ne fait rien car Shorebird n'est pas disponible
 class UpdateService {
   UpdateService._();
+
   static final UpdateService instance = UpdateService._();
+
+  final _shorebirdUpdater = shorebird.ShorebirdUpdater();
 
   static const String _keyLastUpdateCheck = 'last_update_check';
   static const String _keyLastUpdateApplied = 'last_update_applied';
@@ -14,10 +18,10 @@ class UpdateService {
 
   /// Vérifie et télécharge les mises à jour si disponibles
   /// Retourne un Stream de statuts pour afficher la progression
-  Stream<UpdateStatus> checkAndDownloadUpdates() async* {
+  Stream<UpdateCheckStatus> checkAndDownloadUpdates() async* {
     // En mode debug, Shorebird n'est pas disponible
     if (kDebugMode) {
-      yield UpdateStatus(
+      yield UpdateCheckStatus(
         message: 'Mode développement',
         isDownloading: false,
       );
@@ -25,21 +29,73 @@ class UpdateService {
       return;
     }
 
+    // Vérifier si Shorebird est disponible
+    final status = await _shorebirdUpdater.checkForUpdate();
+
     // Enregistrer la date de vérification
     await _saveLastUpdateCheck();
 
-    // En mode release, on utilise l'auto-update de Shorebird
-    // qui est configuré dans shorebird.yaml
-    yield UpdateStatus(
-      message: 'Vérification...',
-      isDownloading: false,
-    );
-    await Future.delayed(const Duration(milliseconds: 500));
+    if (status != shorebird.UpdateStatus.outdated) {
+      yield UpdateCheckStatus(
+        message: 'À jour',
+        isDownloading: false,
+      );
+      return;
+    }
 
-    yield UpdateStatus(
-      message: 'Prêt',
-      isDownloading: false,
+    // Une mise à jour est disponible
+    yield UpdateCheckStatus(
+      message: 'Téléchargement...',
+      isDownloading: true,
     );
+
+    try {
+      // Télécharger le patch
+      await _shorebirdUpdater.update();
+
+      // Récupérer le numéro du patch
+      final currentPatch = await _shorebirdUpdater.readCurrentPatch();
+
+      // Enregistrer la mise à jour
+      await recordUpdateApplied(patchNumber: currentPatch?.number.toString());
+
+      yield UpdateCheckStatus(
+        message: 'Mise à jour prête (redémarrage requis)',
+        isDownloading: false,
+      );
+    } catch (e) {
+      print('❌ Erreur lors du téléchargement de la mise à jour: $e');
+      yield UpdateCheckStatus(
+        message: 'Erreur de mise à jour',
+        isDownloading: false,
+      );
+    }
+  }
+
+  /// Vérifie si une mise à jour est disponible (sans télécharger)
+  Future<bool> isUpdateAvailable() async {
+    if (kDebugMode) return false;
+
+    try {
+      final status = await _shorebirdUpdater.checkForUpdate();
+      return status == shorebird.UpdateStatus.outdated;
+    } catch (e) {
+      print('❌ Erreur lors de la vérification de mise à jour: $e');
+      return false;
+    }
+  }
+
+  /// Récupère le numéro du patch actuel depuis Shorebird
+  Future<int?> getCurrentPatchNumberFromShorebird() async {
+    if (kDebugMode) return null;
+
+    try {
+      final currentPatch = await _shorebirdUpdater.readCurrentPatch();
+      return currentPatch?.number;
+    } catch (e) {
+      print('❌ Erreur lors de la récupération du numéro de patch: $e');
+      return null;
+    }
   }
 
   /// Enregistre qu'une mise à jour a été appliquée
@@ -117,12 +173,12 @@ class UpdateService {
   }
 }
 
-/// Statut de la mise à jour
-class UpdateStatus {
+/// Statut de la vérification de mise à jour
+class UpdateCheckStatus {
   final String message;
   final bool isDownloading;
 
-  UpdateStatus({
+  UpdateCheckStatus({
     required this.message,
     required this.isDownloading,
   });
