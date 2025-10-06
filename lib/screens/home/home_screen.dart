@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../theme/app_colors.dart';
+import '../../providers/home_provider.dart';
 import '../settings/settings_screen.dart';
 import 'widgets/home_hero_carousel.dart';
 import 'widgets/continue_watching_section.dart';
@@ -16,7 +17,66 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+  bool _isRefreshing = false;
+  bool _hasInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Rafraîchir quand l'app revient au premier plan
+    if (state == AppLifecycleState.resumed && _hasInitialized) {
+      _refreshHomeData();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Marquer comme initialisé après le premier build
+    if (!_hasInitialized) {
+      _hasInitialized = true;
+    }
+  }
+
+  /// Rafraîchit toutes les données de la page d'accueil
+  Future<void> _refreshHomeData() async {
+    if (_isRefreshing) return;
+
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      // Invalider tous les providers pour forcer le rechargement
+      ref.invalidate(resumeItemsProvider);
+      ref.invalidate(nextUpEpisodesProvider);
+      ref.invalidate(heroItemsProvider);
+      ref.invalidate(userLibrariesProvider);
+      ref.invalidate(latestItemsProvider);
+
+      // Attendre un peu pour que les providers se rechargent
+      await Future.delayed(const Duration(milliseconds: 500));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -52,6 +112,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
             actions: [
+              // Bouton de rafraîchissement (visible sur desktop)
+              if (isDesktop)
+                IconButton(
+                  icon: _isRefreshing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.jellyfinPurple,
+                          ),
+                        )
+                      : const Icon(IconsaxPlusLinear.refresh),
+                  color: AppColors.text4,
+                  tooltip: 'Rafraîchir',
+                  onPressed: _isRefreshing ? null : _refreshHomeData,
+                ),
               IconButton(
                 icon: const Icon(IconsaxPlusLinear.notification),
                 color: AppColors.text4,

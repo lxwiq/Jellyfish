@@ -670,5 +670,130 @@ class JellyfinService {
 
   /// Récupère le token d'accès actuel
   String? get accessToken => _accessToken;
+
+  /// Signale le début de lecture d'un item
+  Future<bool> reportPlaybackStart({
+    required String itemId,
+    required String userId,
+    int? positionTicks,
+    int? audioStreamIndex,
+    int? subtitleStreamIndex,
+    String? mediaSourceId,
+  }) async {
+    if (_api == null) {
+      print('❌ Client API non initialisé');
+      return false;
+    }
+
+    try {
+      print('▶️ Signalement du début de lecture: $itemId');
+      final playbackStartInfo = PlaybackStartInfo(
+        itemId: itemId,
+        positionTicks: positionTicks ?? 0,
+        audioStreamIndex: audioStreamIndex,
+        subtitleStreamIndex: subtitleStreamIndex,
+        mediaSourceId: mediaSourceId ?? itemId,
+        canSeek: true,
+        isPaused: false,
+        playMethod: PlayMethod.directplay,
+      );
+
+      final response = await _api!.sessionsPlayingPost(
+        body: playbackStartInfo,
+      );
+
+      if (response.isSuccessful) {
+        print('✅ Début de lecture signalé');
+        return true;
+      } else {
+        print('⚠️ Échec du signalement de début de lecture: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Erreur lors du signalement de début de lecture: $e');
+      return false;
+    }
+  }
+
+  /// Signale la progression de lecture d'un item
+  Future<bool> reportPlaybackProgress({
+    required String itemId,
+    required String userId,
+    required int positionTicks,
+    bool isPaused = false,
+    int? audioStreamIndex,
+    int? subtitleStreamIndex,
+    String? mediaSourceId,
+  }) async {
+    if (_api == null) {
+      print('❌ Client API non initialisé');
+      return false;
+    }
+
+    try {
+      final playbackProgressInfo = PlaybackProgressInfo(
+        itemId: itemId,
+        positionTicks: positionTicks,
+        audioStreamIndex: audioStreamIndex,
+        subtitleStreamIndex: subtitleStreamIndex,
+        mediaSourceId: mediaSourceId ?? itemId,
+        canSeek: true,
+        isPaused: isPaused,
+        playMethod: PlayMethod.directplay,
+      );
+
+      final response = await _api!.sessionsPlayingProgressPost(
+        body: playbackProgressInfo,
+      );
+
+      if (response.isSuccessful) {
+        // Ne pas logger à chaque fois pour éviter le spam
+        return true;
+      } else {
+        print('⚠️ Échec du signalement de progression: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Erreur lors du signalement de progression: $e');
+      return false;
+    }
+  }
+
+  /// Signale l'arrêt de lecture d'un item
+  Future<bool> reportPlaybackStopped({
+    required String itemId,
+    required String userId,
+    required int positionTicks,
+    String? mediaSourceId,
+  }) async {
+    if (_api == null) {
+      print('❌ Client API non initialisé');
+      return false;
+    }
+
+    try {
+      print('⏹️ Signalement de l\'arrêt de lecture: $itemId à ${positionTicks ~/ 10000000}s');
+      final playbackStopInfo = PlaybackStopInfo(
+        itemId: itemId,
+        positionTicks: positionTicks,
+        mediaSourceId: mediaSourceId ?? itemId,
+      );
+
+      final response = await _api!.sessionsPlayingStoppedPost(
+        body: playbackStopInfo,
+      );
+
+      if (response.isSuccessful) {
+        print('✅ Arrêt de lecture signalé');
+        return true;
+      } else {
+        print('⚠️ Échec du signalement d\'arrêt de lecture: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('❌ Erreur lors du signalement d\'arrêt de lecture: $e');
+      return false;
+    }
+  }
 }
 

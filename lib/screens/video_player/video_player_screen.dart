@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/video_player_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/services_provider.dart';
 import '../../jellyfin/jellyfin_open_api.swagger.dart';
 import 'widgets/custom_video_controls.dart';
 
@@ -33,6 +35,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   bool _hasError = false;
   String? _errorMessage;
   BoxFit _videoFit = BoxFit.contain; // Mode d'affichage par défaut
+  Timer? _progressReportTimer;
+  bool _hasReportedStart = false;
 
   @override
   void initState() {
@@ -118,6 +122,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       setState(() {
         _isInitialized = true;
       });
+
+      // Démarrer le reporting de progression après l'initialisation
+      _startProgressReporting();
     } catch (e) {
       print('❌ Erreur lors de l\'initialisation du player: $e');
       setState(() {
@@ -125,6 +132,79 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         _errorMessage = 'Erreur lors de l\'initialisation: $e';
       });
     }
+  }
+
+  /// Démarre le reporting de progression vers Jellyfin
+  void _startProgressReporting() {
+    final authState = ref.read(authStateProvider);
+    final userId = authState.user?.id;
+
+    if (userId == null) return;
+
+    // Signaler le début de lecture
+    _reportPlaybackStart();
+
+    // Créer un timer pour reporter la progression toutes les 10 secondes
+    _progressReportTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      _reportPlaybackProgress();
+    });
+  }
+
+  /// Signale le début de lecture à Jellyfin
+  Future<void> _reportPlaybackStart() async {
+    if (_hasReportedStart) return;
+
+    final authState = ref.read(authStateProvider);
+    final userId = authState.user?.id;
+    final jellyfinService = ref.read(jellyfinServiceProvider);
+
+    if (userId == null) return;
+
+    final positionTicks = player.state.position.inMicroseconds * 10;
+
+    await jellyfinService.reportPlaybackStart(
+      itemId: widget.itemId,
+      userId: userId,
+      positionTicks: positionTicks,
+    );
+
+    _hasReportedStart = true;
+  }
+
+  /// Signale la progression de lecture à Jellyfin
+  Future<void> _reportPlaybackProgress() async {
+    final authState = ref.read(authStateProvider);
+    final userId = authState.user?.id;
+    final jellyfinService = ref.read(jellyfinServiceProvider);
+
+    if (userId == null) return;
+
+    final positionTicks = player.state.position.inMicroseconds * 10;
+    final isPaused = !player.state.playing;
+
+    await jellyfinService.reportPlaybackProgress(
+      itemId: widget.itemId,
+      userId: userId,
+      positionTicks: positionTicks,
+      isPaused: isPaused,
+    );
+  }
+
+  /// Signale l'arrêt de lecture à Jellyfin
+  Future<void> _reportPlaybackStopped() async {
+    final authState = ref.read(authStateProvider);
+    final userId = authState.user?.id;
+    final jellyfinService = ref.read(jellyfinServiceProvider);
+
+    if (userId == null) return;
+
+    final positionTicks = player.state.position.inMicroseconds * 10;
+
+    await jellyfinService.reportPlaybackStopped(
+      itemId: widget.itemId,
+      userId: userId,
+      positionTicks: positionTicks,
+    );
   }
 
   /// Planifie le seek à la position de départ après que la vidéo soit prête
@@ -162,13 +242,19 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    // Arrêter le timer de progression
+    _progressReportTimer?.cancel();
+
+    // Signaler l'arrêt de lecture à Jellyfin
+    _reportPlaybackStopped();
+
     // Restaurer l'orientation et l'UI système
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    
+
     // Libérer les ressources du player
     player.dispose();
     super.dispose();
