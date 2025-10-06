@@ -69,6 +69,12 @@ dependencies:
   # OTA Updates
   shorebird_code_push: ^2.0.5
 
+  # Offline Downloads
+  background_downloader: ^9.2.6
+  flutter_local_notifications: ^19.4.2
+  sqflite: ^2.4.1
+  permission_handler: ^11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

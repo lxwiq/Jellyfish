@@ -7,6 +7,7 @@ import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
 import '../../../widgets/resume_play_button.dart';
+import '../../../widgets/download_button.dart';
 import '../../video_player/video_player_screen.dart';
 import '../../../services/custom_cache_manager.dart';
 
@@ -186,6 +187,10 @@ class ItemDetailHeader extends ConsumerWidget {
                                   );
                                 }
                               },
+                            ),
+                            DownloadButton(
+                              item: item,
+                              showLabel: true,
                             ),
                             OutlinedButton.icon(
                               onPressed: () {

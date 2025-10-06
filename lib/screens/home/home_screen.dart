@@ -4,6 +4,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/home_provider.dart';
 import '../settings/settings_screen.dart';
+import '../downloads/downloads_screen.dart';
 import 'widgets/home_hero_carousel.dart';
 import 'widgets/continue_watching_section.dart';
 import 'widgets/next_up_section.dart';
@@ -134,6 +135,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 color: AppColors.text4,
                 onPressed: () {
                   // TODO: Ouvrir les notifications
+                },
+              ),
+              IconButton(
+                icon: const Icon(IconsaxPlusLinear.document_download),
+                color: AppColors.text4,
+                tooltip: 'Téléchargements',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const DownloadsScreen(),
+                    ),
+                  );
                 },
               ),
               IconButton(

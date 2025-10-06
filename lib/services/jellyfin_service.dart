@@ -795,5 +795,56 @@ class JellyfinService {
       return false;
     }
   }
+
+  // ============================================================================
+  // Méthodes pour les téléchargements hors ligne
+  // ============================================================================
+
+  /// Obtient l'URL de téléchargement direct pour un item
+  String getDirectDownloadUrl(
+    String itemId, {
+    String quality = 'high',
+  }) {
+    if (_currentServerUrl == null) {
+      throw Exception('Server URL not initialized');
+    }
+
+    // Construire l'URL de téléchargement direct
+    // Format: /Items/{itemId}/Download
+    return '$_currentServerUrl/Items/$itemId/Download';
+  }
+
+  /// Obtient le token d'accès actuel
+  Future<String?> getAccessToken() async {
+    return _accessToken;
+  }
+
+  /// Vérifie si un item est téléchargeable
+  bool isDownloadable(BaseItemDto item) {
+    // Vérifier si l'item est un média vidéo
+    final type = item.type?.value;
+    return type == 'Movie' || type == 'Episode';
+  }
+
+  /// Obtient la taille estimée du téléchargement (en bytes)
+  Future<int> getEstimatedDownloadSize(
+    String itemId,
+    String quality,
+  ) async {
+    // Pour l'instant, retourner une estimation basée sur la qualité
+    // TODO: Implémenter une vraie estimation basée sur les métadonnées
+    switch (quality) {
+      case 'original':
+        return 5 * 1024 * 1024 * 1024; // 5 GB
+      case 'high':
+        return 3 * 1024 * 1024 * 1024; // 3 GB
+      case 'medium':
+        return 1 * 1024 * 1024 * 1024; // 1 GB
+      case 'low':
+        return 500 * 1024 * 1024; // 500 MB
+      default:
+        return 2 * 1024 * 1024 * 1024; // 2 GB
+    }
+  }
 }
 

@@ -9,6 +9,7 @@ import '../../item_detail/item_detail_screen.dart';
 import '../../../services/custom_cache_manager.dart';
 import '../../../widgets/card_constants.dart';
 import '../../../widgets/series_episode_badge.dart';
+import '../../../widgets/downloaded_badge.dart';
 
 /// Carte poster simple pour afficher un film/série
 class PosterCard extends ConsumerWidget {
@@ -127,6 +128,16 @@ class PosterCard extends ConsumerWidget {
                             child: SeriesEpisodeBadge(
                               item: item,
                               size: cardWidth * 0.18, // Taille proportionnelle à la carte
+                            ),
+                          ),
+                        // Badge de téléchargement
+                        if (item.id != null)
+                          Positioned(
+                            top: 8,
+                            left: 8,
+                            child: DownloadedBadge(
+                              itemId: item.id!,
+                              size: cardWidth * 0.15,
                             ),
                           ),
                       ],
