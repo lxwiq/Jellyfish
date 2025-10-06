@@ -51,14 +51,16 @@ android {
 
     // Optimisation: Split APK par ABI pour réduire la taille de téléchargement
     // Note: Ceci est utilisé uniquement pour les APKs, pas pour les AAB
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("armeabi-v7a", "arm64-v8a", "x86_64")
-            isUniversalApk = false  // Ne pas créer d'APK universel (trop gros)
-        }
-    }
+    // Désactivé car cela cause des conflits lors de la construction d'AAB
+    // Les AAB gèrent automatiquement l'optimisation multi-ABI via Google Play
+    // splits {
+    //     abi {
+    //         isEnable = true
+    //         reset()
+    //         include("armeabi-v7a", "arm64-v8a", "x86_64")
+    //         isUniversalApk = false  // Ne pas créer d'APK universel (trop gros)
+    //     }
+    // }
 
     // Optimisation: Exclusion des fichiers dupliqués
     packagingOptions {
