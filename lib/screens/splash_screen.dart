@@ -3,7 +3,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
 import '../providers/auth_provider.dart';
-import 'home_screen.dart';
+import 'home/home_screen.dart';
+import 'onboarding_screen.dart';
+
 
 /// Écran de chargement avec le logo Jellyfin
 class SplashScreen extends ConsumerStatefulWidget {
@@ -23,19 +25,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Animation du logo (scale + rotation)
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-    
+
     // Animation de fade pour le texte
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    
+
     _logoAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -43,7 +45,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       parent: _logoController,
       curve: Curves.elasticOut,
     ));
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -51,22 +53,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       parent: _fadeController,
       curve: Curves.easeInOut,
     ));
-    
+
     _startAnimations();
   }
 
   void _startAnimations() async {
     // Démarrer l'animation du logo
     _logoController.forward();
-    
+
     // Attendre un peu puis démarrer le fade du texte
     await Future.delayed(const Duration(milliseconds: 500));
     _fadeController.forward();
-    
+
     // Vérifier le statut d'authentification
     await Future.delayed(const Duration(milliseconds: 1000));
     ref.read(authStateProvider.notifier).checkAuthStatus();
-    
+
     // Attendre la fin des animations puis naviguer
     await Future.delayed(const Duration(milliseconds: 2000));
     if (mounted) {
@@ -75,9 +77,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _navigateToNextScreen() {
+    final auth = ref.read(authStateProvider);
+    final bool goToOnboarding = auth.user == null || auth.token == null;
+    final Widget next = goToOnboarding
+        ? const OnboardingScreen()
+        : const HomeScreen();
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => next,
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
             opacity: animation,
@@ -139,9 +147,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 );
               },
             ),
-            
+
             const SizedBox(height: 32),
-            
+
             // Texte animé
             AnimatedBuilder(
               animation: _fadeAnimation,
@@ -158,22 +166,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           letterSpacing: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Client Jellyfin',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.text3,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+
                     ],
                   ),
                 );
               },
             ),
-            
+
             const SizedBox(height: 48),
-            
+
             // Indicateur de chargement
             AnimatedBuilder(
               animation: _fadeAnimation,
