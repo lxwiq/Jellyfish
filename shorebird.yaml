@@ -1,15 +1,14 @@
-# Shorebird configuration file
+# This file is used to configure the Shorebird updater used by your app.
 # Learn more at https://docs.shorebird.dev
+# This file does not contain any sensitive information and should be checked into version control.
 
-# The app_id identifies your app in the Shorebird backend.
-# This value is unique to your app and should not be changed.
-app_id: your_app_id_here
+# Your app_id is the unique identifier assigned to your app.
+# It is used to identify your app when requesting patches from Shorebird's servers.
+# It is not a secret and can be shared publicly.
+app_id: 623d7b7f-65dd-464a-bba1-8e8028c4d3a1
 
-# The flavors section allows you to define different configurations
-# for different build flavors of your app.
-flavors:
-  # Example flavor configuration
-  # production:
-  #   app_id: your_production_app_id
-  # staging:
-  #   app_id: your_staging_app_id
+# auto_update controls if Shorebird should automatically update in the background on launch.
+# If auto_update: false, you will need to use package:shorebird_code_push to trigger updates.
+# https://pub.dev/packages/shorebird_code_push
+# Uncomment the following line to disable automatic updates.
+# auto_update: false
