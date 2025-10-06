@@ -433,6 +433,41 @@ class JellyfinService {
     return '$_currentServerUrl/Videos/$itemId/master.m3u8?$queryString';
   }
 
+  /// Récupère les informations de playback pour un item
+  /// Contient les MediaSources avec les pistes audio/sous-titres et leurs métadonnées
+  Future<PlaybackInfoResponse?> getPlaybackInfo(String itemId, String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      print('🎬 Récupération des informations de playback pour: $itemId');
+      final response = await _api!.itemsItemIdPlaybackInfoGet(
+        itemId: itemId,
+        userId: userId,
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        print('✅ Informations de playback récupérées');
+        final mediaSources = response.body!.mediaSources;
+        if (mediaSources != null && mediaSources.isNotEmpty) {
+          print('   📦 ${mediaSources.length} source(s) média trouvée(s)');
+          final firstSource = mediaSources.first;
+          final audioStreams = firstSource.mediaStreams?.where((s) => s.type == MediaStreamType.audio).length ?? 0;
+          final subtitleStreams = firstSource.mediaStreams?.where((s) => s.type == MediaStreamType.subtitle).length ?? 0;
+          print('   🎵 $audioStreams piste(s) audio');
+          print('   💬 $subtitleStreams piste(s) de sous-titres');
+        }
+        return response.body;
+      }
+      print('⚠️ Aucune information de playback disponible');
+      return null;
+    } catch (e) {
+      print('❌ Erreur lors de la récupération des informations de playback: $e');
+      return null;
+    }
+  }
+
   /// Récupère le token d'accès actuel
   String? get accessToken => _accessToken;
 }

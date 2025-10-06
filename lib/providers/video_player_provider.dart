@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services_provider.dart';
+import '../jellyfin/jellyfin_open_api.swagger.dart';
 
 /// Provider pour gérer l'état du lecteur vidéo
 final videoPlayerProvider = StateNotifierProvider<VideoPlayerNotifier, VideoPlayerState>((ref) {
@@ -15,6 +16,7 @@ class VideoPlayerState {
   final bool isBuffering;
   final double volume;
   final double playbackSpeed;
+  final PlaybackInfoResponse? playbackInfo;
 
   const VideoPlayerState({
     this.currentItemId,
@@ -24,6 +26,7 @@ class VideoPlayerState {
     this.isBuffering = false,
     this.volume = 1.0,
     this.playbackSpeed = 1.0,
+    this.playbackInfo,
   });
 
   VideoPlayerState copyWith({
@@ -34,6 +37,7 @@ class VideoPlayerState {
     bool? isBuffering,
     double? volume,
     double? playbackSpeed,
+    PlaybackInfoResponse? playbackInfo,
   }) {
     return VideoPlayerState(
       currentItemId: currentItemId ?? this.currentItemId,
@@ -43,6 +47,7 @@ class VideoPlayerState {
       isBuffering: isBuffering ?? this.isBuffering,
       volume: volume ?? this.volume,
       playbackSpeed: playbackSpeed ?? this.playbackSpeed,
+      playbackInfo: playbackInfo ?? this.playbackInfo,
     );
   }
 }
@@ -53,15 +58,27 @@ class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
 
   VideoPlayerNotifier(this.ref) : super(const VideoPlayerState());
 
+  /// Récupère les informations de playback depuis Jellyfin
+  Future<PlaybackInfoResponse?> fetchPlaybackInfo(String itemId, String userId) async {
+    final jellyfinService = ref.read(jellyfinServiceProvider);
+    final playbackInfo = await jellyfinService.getPlaybackInfo(itemId, userId);
+
+    if (playbackInfo != null) {
+      state = state.copyWith(playbackInfo: playbackInfo);
+    }
+
+    return playbackInfo;
+  }
+
   /// Obtient l'URL de streaming pour un item
   String? getStreamUrl(String itemId, {
     String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
-    bool useHls = false,
+    bool useHls = false, // Revenir au streaming direct par défaut
   }) {
     final jellyfinService = ref.read(jellyfinServiceProvider);
-    
+
     if (useHls) {
       return jellyfinService.getHlsStreamUrl(
         itemId,

@@ -5,6 +5,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/video_player_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../jellyfin/jellyfin_open_api.swagger.dart';
 import 'widgets/custom_video_controls.dart';
 
@@ -45,9 +46,27 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       player = Player();
       controller = VideoController(player);
 
+      // Récupérer les informations de playback depuis Jellyfin
+      final authState = ref.read(authStateProvider);
+      final userId = authState.user?.id;
+
+      if (userId == null) {
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Utilisateur non connecté';
+        });
+        return;
+      }
+
+      print('🎬 Récupération des informations de playback...');
+      await ref.read(videoPlayerProvider.notifier).fetchPlaybackInfo(
+        widget.itemId,
+        userId,
+      );
+
       // Obtenir l'URL de streaming
       final streamUrl = ref.read(videoPlayerProvider.notifier).getStreamUrl(widget.itemId);
-      
+
       if (streamUrl == null) {
         setState(() {
           _hasError = true;
@@ -59,18 +78,34 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       print('🎬 URL de streaming: $streamUrl');
 
       // Configurer la position de départ si disponible
-      if (widget.startPositionTicks != null) {
-        final startSeconds = widget.startPositionTicks! ~/ 10000000;
-        await player.open(
-          Media(streamUrl),
-          play: true,
-        );
-        await player.seek(Duration(seconds: startSeconds));
-      } else {
-        await player.open(
-          Media(streamUrl),
-          play: true,
-        );
+      try {
+        if (widget.startPositionTicks != null) {
+          final startSeconds = widget.startPositionTicks! ~/ 10000000;
+          print('🎬 Ouverture de la vidéo avec position de départ: ${startSeconds}s');
+
+          // Ouvrir la vidéo et démarrer la lecture
+          await player.open(
+            Media(streamUrl),
+            play: true,
+          );
+
+          // Attendre que la vidéo soit prête et positionner
+          _scheduleSeek(startSeconds);
+        } else {
+          print('🎬 Ouverture de la vidéo sans position de départ');
+          await player.open(
+            Media(streamUrl),
+            play: true,
+          );
+          print('✅ Vidéo ouverte');
+        }
+      } catch (e) {
+        print('❌ Erreur lors de l\'ouverture de la vidéo: $e');
+        setState(() {
+          _hasError = true;
+          _errorMessage = 'Erreur lors de l\'ouverture de la vidéo: $e';
+        });
+        return;
       }
 
       // Mettre en plein écran
@@ -89,6 +124,39 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         _hasError = true;
         _errorMessage = 'Erreur lors de l\'initialisation: $e';
       });
+    }
+  }
+
+  /// Planifie le seek à la position de départ après que la vidéo soit prête
+  void _scheduleSeek(int startSeconds) {
+    // Essayer plusieurs fois avec des délais croissants
+    _attemptSeek(startSeconds, 0);
+  }
+
+  void _attemptSeek(int startSeconds, int attempt) async {
+    if (attempt >= 10) {
+      print('⚠️ Abandon du positionnement après 10 tentatives');
+      return;
+    }
+
+    // Délais croissants : 500ms, 1s, 1.5s, 2s, etc.
+    final delay = Duration(milliseconds: 500 + (attempt * 500));
+    await Future.delayed(delay);
+
+    final duration = player.state.duration;
+    if (duration.inSeconds > 0) {
+      print('🎬 Tentative ${attempt + 1}: Durée détectée: ${duration.inSeconds}s, positionnement à ${startSeconds}s');
+      try {
+        await player.seek(Duration(seconds: startSeconds));
+        print('✅ Vidéo positionnée à ${startSeconds}s après ${attempt + 1} tentative(s)');
+      } catch (e) {
+        print('❌ Erreur lors du seek: $e');
+        // Réessayer
+        _attemptSeek(startSeconds, attempt + 1);
+      }
+    } else {
+      print('🔄 Tentative ${attempt + 1}: Durée non disponible, nouvelle tentative...');
+      _attemptSeek(startSeconds, attempt + 1);
     }
   }
 
@@ -160,6 +228,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       );
     }
 
+    // Récupérer le playbackInfo depuis le provider
+    final playbackInfo = ref.watch(videoPlayerProvider).playbackInfo;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
@@ -174,6 +245,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               });
             },
             currentFit: _videoFit,
+            playbackInfo: playbackInfo,
           ),
         ),
       ),

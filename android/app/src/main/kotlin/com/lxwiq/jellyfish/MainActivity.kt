@@ -1,4 +1,4 @@
-package com.example.jellyfish
+package com.lxwiq.jellyfish
 
 import io.flutter.embedding.android.FlutterActivity
 

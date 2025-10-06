@@ -6,6 +6,7 @@ import '../../../theme/app_colors.dart';
 import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
+import '../../../widgets/resume_play_button.dart';
 import '../../video_player/video_player_screen.dart';
 
 /// Header de la page de détails avec backdrop et informations principales
@@ -167,7 +168,8 @@ class ItemDetailHeader extends ConsumerWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            ElevatedButton.icon(
+                            ResumePlayButton(
+                              item: item,
                               onPressed: () {
                                 if (item.id != null) {
                                   Navigator.of(context).push(
@@ -181,16 +183,6 @@ class ItemDetailHeader extends ConsumerWidget {
                                   );
                                 }
                               },
-                              icon: const Icon(IconsaxPlusBold.play),
-                              label: const Text('Lire'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.jellyfinPurple,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                              ),
                             ),
                             OutlinedButton.icon(
                               onPressed: () {

@@ -1,0 +1,15 @@
+# Shorebird configuration file
+# Learn more at https://docs.shorebird.dev
+
+# The app_id identifies your app in the Shorebird backend.
+# This value is unique to your app and should not be changed.
+app_id: your_app_id_here
+
+# The flavors section allows you to define different configurations
+# for different build flavors of your app.
+flavors:
+  # Example flavor configuration
+  # production:
+  #   app_id: your_production_app_id
+  # staging:
+  #   app_id: your_staging_app_id
