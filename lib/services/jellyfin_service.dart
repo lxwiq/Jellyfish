@@ -217,7 +217,11 @@ class JellyfinService {
         limit: limit,
         enableUserData: true,
         enableImages: true,
-        imageTypeLimit: 1,
+        imageTypeLimit: 3, // Augmenter pour avoir plus d'options d'images
+        fields: [
+          ItemFields.primaryimageaspectratio,
+          ItemFields.overview,
+        ],
       );
 
       if (response.isSuccessful && response.body != null) {
@@ -242,7 +246,11 @@ class JellyfinService {
         limit: limit,
         enableUserData: true,
         enableImages: true,
-        imageTypeLimit: 1,
+        imageTypeLimit: 3, // Augmenter pour avoir plus d'options d'images
+        fields: [
+          ItemFields.primaryimageaspectratio,
+          ItemFields.overview,
+        ],
       );
 
       if (response.isSuccessful && response.body != null) {

@@ -13,10 +13,29 @@ final resumeItemsProvider = FutureProvider.autoDispose<List<BaseItemDto>>((ref) 
   }
 
   final items = await jellyfinService.getResumeItems(authState.user!.id, limit: 10);
+
+  // Filtrer pour ne garder que les éléments avec une vraie progression
+  final filteredItems = items.where((item) {
+    if (item.id == null) return false;
+
+    final userData = item.userData;
+    if (userData == null) return false;
+
+    final playbackPositionTicks = userData.playbackPositionTicks ?? 0;
+    final runtimeTicks = item.runTimeTicks ?? 0;
+
+    // Ne garder que les éléments avec une progression réelle (>0% et <95%)
+    if (playbackPositionTicks == 0 || runtimeTicks == 0) return false;
+
+    final progressPercentage = playbackPositionTicks / runtimeTicks;
+    if (progressPercentage >= 0.95) return false; // Exclure les éléments presque terminés
+
+    return true;
+  }).toList();
+
   // Dédupliquer par ID
   final seen = <String>{};
-  return items.where((item) {
-    if (item.id == null) return false;
+  return filteredItems.where((item) {
     if (seen.contains(item.id)) return false;
     seen.add(item.id!);
     return true;
@@ -140,41 +159,104 @@ String? getItemImageUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth, int? ma
 }
 
 /// Helper pour obtenir l'URL d'une image backdrop haute qualité pour les cards
+/// Avec fallback vers trickplay et thumb si backdrop non disponible
 String? getItemCardBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
-  final jellyfinService = ref.watch(jellyfinServiceProvider);
+  final urls = getItemCardBackdropUrls(ref, item, maxWidth: maxWidth);
+  return urls.isNotEmpty ? urls.first : null;
+}
 
-  if (item.id == null) return null;
+/// Helper pour obtenir une liste d'URLs d'images avec fallbacks
+/// Retourne toutes les URLs possibles dans l'ordre de priorité
+List<String?> getItemCardBackdropUrls(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+  final urls = <String?>[];
+
+  if (item.id == null) return urls;
 
   // Pour les épisodes, utiliser le backdrop de la série parente
   if (item.type?.value == 'Episode') {
+    // 1. Backdrop de la série parente avec tag
     if (item.parentBackdropItemId != null &&
         item.parentBackdropImageTags != null &&
         item.parentBackdropImageTags!.isNotEmpty) {
-      return jellyfinService.getBackdropUrl(
+      urls.add(jellyfinService.getBackdropUrl(
         item.parentBackdropItemId!,
         tag: item.parentBackdropImageTags!.first,
         maxWidth: maxWidth,
-      );
+      ));
     }
+
+    // 2. Backdrop de la série parente sans tag
     if (item.seriesId != null) {
-      return jellyfinService.getBackdropUrl(
+      urls.add(jellyfinService.getBackdropUrl(
         item.seriesId!,
         maxWidth: maxWidth,
-      );
+      ));
     }
-  }
 
-  // Pour les films et séries, utiliser leur backdrop
-  final backdropTags = item.backdropImageTags;
-  if (backdropTags != null && backdropTags.isNotEmpty) {
-    return jellyfinService.getBackdropUrl(
+    // 3. Backdrop de l'épisode lui-même
+    final episodeBackdropTags = item.backdropImageTags;
+    if (episodeBackdropTags != null && episodeBackdropTags.isNotEmpty) {
+      urls.add(jellyfinService.getBackdropUrl(
+        item.id!,
+        tag: episodeBackdropTags.first,
+        maxWidth: maxWidth,
+      ));
+    }
+
+    // 4. Image Primary de l'épisode
+    final primaryTag = item.imageTags?['Primary'];
+    if (primaryTag != null) {
+      urls.add(jellyfinService.getImageUrl(
+        item.id!,
+        tag: primaryTag,
+        maxWidth: maxWidth,
+      ));
+    }
+
+    // 5. Trickplay (capture d'écran de la vidéo)
+    urls.add(jellyfinService.getTrickplayUrl(
       item.id!,
-      tag: backdropTags.first,
+      width: maxWidth,
+      index: 0,
+    ));
+
+    // 6. Thumb
+    urls.add(jellyfinService.getThumbUrl(
+      item.id!,
       maxWidth: maxWidth,
-    );
+    ));
+  } else {
+    // Pour les films et séries
+
+    // 1. Backdrop avec tag
+    final backdropTags = item.backdropImageTags;
+    if (backdropTags != null && backdropTags.isNotEmpty) {
+      urls.add(jellyfinService.getBackdropUrl(
+        item.id!,
+        tag: backdropTags.first,
+        maxWidth: maxWidth,
+      ));
+    }
+
+    // 2. Image Primary
+    final primaryTag = item.imageTags?['Primary'];
+    if (primaryTag != null) {
+      urls.add(jellyfinService.getImageUrl(
+        item.id!,
+        tag: primaryTag,
+        maxWidth: maxWidth,
+      ));
+    }
+
+    // 3. Thumb
+    urls.add(jellyfinService.getThumbUrl(
+      item.id!,
+      maxWidth: maxWidth,
+    ));
   }
 
-  return null;
+  return urls;
 }
 
 /// Helper pour obtenir l'URL d'une image backdrop haute qualité pour le hero carousel

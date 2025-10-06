@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../item_detail/item_detail_screen.dart';
-import '../../../services/custom_cache_manager.dart';
 import '../../../widgets/card_constants.dart';
 import '../../../widgets/series_episode_badge.dart';
+import '../../../widgets/fallback_image.dart';
 
 /// Carte pour afficher un média en cours de lecture
 class MediaCard extends ConsumerWidget {
@@ -33,7 +32,7 @@ class MediaCard extends ConsumerWidget {
 
     // Optimiser les paramètres d'image - utiliser backdrop au lieu de poster
     final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
-    final imageUrl = getItemCardBackdropUrl(ref, item, maxWidth: optimalWidth);
+    final imageUrls = getItemCardBackdropUrls(ref, item, maxWidth: optimalWidth);
     final title = item.name ?? 'Sans titre';
     final subtitle = getResumeTimeText(item);
     final progress = getProgressPercentage(item);
@@ -64,47 +63,15 @@ class MediaCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    // Image ou placeholder
-                    if (imageUrl != null)
-                      Positioned.fill(
-                        child: CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                          memCacheWidth: optimalWidth,
-                          cacheManager: CustomCacheManager(),
-                          placeholder: (context, url) => Container(
-                            color: AppColors.surface1,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.jellyfinPurple,
-                                strokeWidth: 2,
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: AppColors.surface1,
-                            child: const Center(
-                              child: Icon(
-                                IconsaxPlusLinear.video_square,
-                                size: 40,
-                                color: AppColors.text2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        color: AppColors.surface1,
-                        child: const Center(
-                          child: Icon(
-                            IconsaxPlusLinear.video_square,
-                            size: 40,
-                            color: AppColors.text2,
-                          ),
-                        ),
+                    // Image avec fallbacks automatiques
+                    Positioned.fill(
+                      child: FallbackImage(
+                        imageUrls: imageUrls,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        memCacheWidth: optimalWidth,
                       ),
+                    ),
 
                     // Gradient overlay
                     Positioned.fill(
