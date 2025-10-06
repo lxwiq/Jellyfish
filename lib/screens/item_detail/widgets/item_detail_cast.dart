@@ -5,6 +5,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
+import '../../../services/custom_cache_manager.dart';
 
 /// Widget affichant le casting d'un item
 class ItemDetailCast extends ConsumerWidget {
@@ -105,6 +106,7 @@ class _CastCard extends ConsumerWidget {
                         fit: BoxFit.cover,
                         width: double.infinity,
                         memCacheWidth: 200,
+                        cacheManager: CustomCacheManager(),
                         placeholder: (context, url) => Container(
                           color: AppColors.surface1,
                           child: const Center(

@@ -5,6 +5,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
+import '../../../services/custom_cache_manager.dart';
 
 /// Widget affichant les informations détaillées d'un item
 class ItemDetailInfo extends ConsumerWidget {
@@ -295,6 +296,7 @@ class ItemDetailInfo extends ConsumerWidget {
                   imageUrl: logoUrl,
                   height: 50,
                   fit: BoxFit.contain,
+                  cacheManager: CustomCacheManager(),
                   placeholder: (context, url) => const SizedBox(height: 50, width: 100),
                   errorWidget: (context, url, error) => _buildStudioName(context, studio.name),
                 );

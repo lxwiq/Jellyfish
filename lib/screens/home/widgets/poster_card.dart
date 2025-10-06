@@ -6,6 +6,7 @@ import '../../../theme/app_colors.dart';
 import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../item_detail/item_detail_screen.dart';
+import '../../../services/custom_cache_manager.dart';
 
 /// Carte poster simple pour afficher un film/série
 class PosterCard extends ConsumerWidget {
@@ -63,6 +64,7 @@ class PosterCard extends ConsumerWidget {
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
                             memCacheWidth: 400,
+                            cacheManager: CustomCacheManager(),
                             placeholder: (context, url) => Container(
                               color: AppColors.surface1,
                               child: const Center(

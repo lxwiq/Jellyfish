@@ -8,6 +8,7 @@ import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
 import '../../../widgets/resume_play_button.dart';
 import '../../video_player/video_player_screen.dart';
+import '../../../services/custom_cache_manager.dart';
 
 /// Header de la page de détails avec backdrop et informations principales
 class ItemDetailHeader extends ConsumerWidget {
@@ -44,6 +45,7 @@ class ItemDetailHeader extends ConsumerWidget {
                 imageUrl: backdropUrl,
                 fit: BoxFit.cover,
                 memCacheWidth: 1920,
+                cacheManager: CustomCacheManager(),
                 placeholder: (context, url) => Container(
                   color: AppColors.surface1,
                 ),
@@ -101,6 +103,7 @@ class ItemDetailHeader extends ConsumerWidget {
                           imageUrl: posterUrl,
                           fit: BoxFit.cover,
                           memCacheWidth: 400,
+                          cacheManager: CustomCacheManager(),
                           placeholder: (context, url) => Container(
                             color: AppColors.surface1,
                           ),
@@ -268,6 +271,7 @@ class ItemDetailHeader extends ConsumerWidget {
           height: 120,
           fit: BoxFit.contain,
           alignment: Alignment.centerLeft,
+          cacheManager: CustomCacheManager(),
           placeholder: (context, url) => _buildTitleText(context),
           errorWidget: (context, url, error) => _buildTitleText(context),
         );

@@ -6,6 +6,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../providers/home_provider.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
+import '../../../services/custom_cache_manager.dart';
 
 /// Hero carousel en haut de la page d'accueil
 class HomeHeroCarousel extends ConsumerStatefulWidget {
@@ -174,6 +175,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel> {
               fit: BoxFit.cover,
               memCacheWidth: widget.isDesktop ? 1920 : 1280,
               memCacheHeight: widget.isDesktop ? 1080 : 720,
+              cacheManager: CustomCacheManager(),
               fadeInDuration: const Duration(milliseconds: 300),
               fadeOutDuration: const Duration(milliseconds: 300),
               placeholder: (context, url) => Container(
