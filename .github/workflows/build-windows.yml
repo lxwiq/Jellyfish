@@ -29,14 +29,15 @@ jobs:
       
     - name: Generate code (build_runner)
       run: flutter packages pub run build_runner build --delete-conflicting-outputs
-      
+      continue-on-error: true
+
     - name: Build Windows app
       run: flutter build windows --release
-      
+
     - name: Create release archive
       run: |
-        cd build/windows/runner/Release
-        Compress-Archive -Path * -DestinationPath ../../../../jellyfish-windows.zip
+        cd build\windows\x64\runner\Release
+        Compress-Archive -Path * -DestinationPath ..\..\..\..\..\jellyfish-windows.zip
         
     - name: Upload Windows build artifact
       uses: actions/upload-artifact@v4
