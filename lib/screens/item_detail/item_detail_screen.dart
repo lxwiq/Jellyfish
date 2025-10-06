@@ -8,6 +8,7 @@ import 'widgets/item_detail_header.dart';
 import 'widgets/item_detail_info.dart';
 import 'widgets/item_detail_cast.dart';
 import 'widgets/item_detail_similar.dart';
+import 'widgets/item_detail_episode_list.dart';
 
 /// Écran de détails d'un item (film, série, épisode, etc.)
 class ItemDetailScreen extends ConsumerWidget {
@@ -48,6 +49,8 @@ class ItemDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref, BaseItemDto item, bool isDesktop) {
+    final isSeries = item.type?.value == 'Series';
+
     return CustomScrollView(
       slivers: [
         // Header avec image backdrop et boutons d'action
@@ -61,8 +64,17 @@ class ItemDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ItemDetailInfo(item: item),
-                
+
                 const SizedBox(height: 32),
+
+                // Liste des épisodes pour les séries
+                if (isSeries && item.id != null) ...[
+                  ItemDetailEpisodeList(
+                    seriesId: item.id!,
+                    isDesktop: isDesktop,
+                  ),
+                  const SizedBox(height: 32),
+                ],
 
                 // Cast et équipe
                 if (item.people != null && item.people!.isNotEmpty) ...[

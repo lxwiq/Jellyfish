@@ -507,6 +507,68 @@ class JellyfinService {
     }
   }
 
+  /// Récupère les saisons d'une série
+  Future<List<BaseItemDto>> getSeasons(String seriesId, String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.showsSeriesIdSeasonsGet(
+        seriesId: seriesId,
+        userId: userId,
+        enableUserData: true,
+        enableImages: true,
+        imageTypeLimit: 1,
+        fields: [ItemFields.overview],
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!.items ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('❌ Erreur lors de la récupération des saisons: $e');
+      return [];
+    }
+  }
+
+  /// Récupère les épisodes d'une saison
+  Future<List<BaseItemDto>> getEpisodes(
+    String seriesId,
+    String userId, {
+    String? seasonId,
+    int? seasonNumber,
+  }) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.showsSeriesIdEpisodesGet(
+        seriesId: seriesId,
+        userId: userId,
+        seasonId: seasonId,
+        season: seasonNumber,
+        enableUserData: true,
+        enableImages: true,
+        imageTypeLimit: 3,
+        fields: [
+          ItemFields.overview,
+          ItemFields.primaryimageaspectratio,
+        ],
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!.items ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('❌ Erreur lors de la récupération des épisodes: $e');
+      return [];
+    }
+  }
+
   /// Construit l'URL de streaming vidéo pour un item
   /// Utilise le streaming direct ou le transcodage selon les capacités
   String? getVideoStreamUrl(String itemId, {

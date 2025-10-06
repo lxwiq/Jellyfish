@@ -6,6 +6,7 @@ import '../../../theme/app_colors.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
 import '../../../services/custom_cache_manager.dart';
+import '../../../widgets/horizontal_carousel.dart';
 
 /// Widget affichant les informations détaillées d'un item
 class ItemDetailInfo extends ConsumerWidget {
@@ -48,7 +49,7 @@ class ItemDetailInfo extends ConsumerWidget {
         if (item.genres != null && item.genres!.isNotEmpty) ...[
           _buildSectionTitle(context, 'Genres', IconsaxPlusLinear.category),
           const SizedBox(height: 16),
-          _buildGenreChips(context),
+          _buildGenreCarousel(context),
           const SizedBox(height: 32),
         ],
 
@@ -56,7 +57,7 @@ class ItemDetailInfo extends ConsumerWidget {
         if (item.tags != null && item.tags!.isNotEmpty) ...[
           _buildSectionTitle(context, 'Tags', IconsaxPlusLinear.tag),
           const SizedBox(height: 16),
-          _buildTagChips(context),
+          _buildTagCarousel(context),
           const SizedBox(height: 32),
         ],
 
@@ -64,7 +65,7 @@ class ItemDetailInfo extends ConsumerWidget {
         if (item.studios != null && item.studios!.isNotEmpty) ...[
           _buildSectionTitle(context, 'Studios', IconsaxPlusLinear.building),
           const SizedBox(height: 16),
-          _buildStudioLogos(jellyfinService),
+          _buildStudioCarousel(jellyfinService),
         ],
       ],
     );
@@ -273,82 +274,88 @@ class ItemDetailInfo extends ConsumerWidget {
     );
   }
 
-  Widget _buildGenreChips(BuildContext context) {
-    return Wrap(
+  Widget _buildGenreCarousel(BuildContext context) {
+    final genreChips = item.genres!.map((genre) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.background3,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.jellyfinPurple.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          genre,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppColors.text5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }).toList();
+
+    return HorizontalCarousel(
+      height: 40,
       spacing: 8,
-      runSpacing: 8,
-      children: item.genres!.map((genre) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.background3,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.jellyfinPurple.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            genre,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.text5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      }).toList(),
+      children: genreChips,
     );
   }
 
-  Widget _buildTagChips(BuildContext context) {
-    return Wrap(
+  Widget _buildTagCarousel(BuildContext context) {
+    final tagChips = item.tags!.map((tag) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface1,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.text3.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          tag,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.text4,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }).toList();
+
+    return HorizontalCarousel(
+      height: 40,
       spacing: 8,
-      runSpacing: 8,
-      children: item.tags!.map((tag) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.surface1,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppColors.text3.withValues(alpha: 0.3),
-              width: 1,
-            ),
-          ),
-          child: Text(
-            tag,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.text4,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-      }).toList(),
+      children: tagChips,
     );
   }
 
-  Widget _buildStudioLogos(dynamic jellyfinService) {
+  Widget _buildStudioCarousel(dynamic jellyfinService) {
     return Builder(
       builder: (context) {
-        return Wrap(
-          spacing: 24,
-          runSpacing: 16,
-          children: item.studios!.map((studio) {
-            if (studio.id != null) {
-              final logoUrl = jellyfinService.getLogoUrl(studio.id!, maxHeight: 50);
-              if (logoUrl != null) {
-                return CachedNetworkImage(
-                  imageUrl: logoUrl,
-                  height: 50,
-                  fit: BoxFit.contain,
-                  cacheManager: CustomCacheManager(),
-                  placeholder: (context, url) => const SizedBox(height: 50, width: 100),
-                  errorWidget: (context, url, error) => _buildStudioName(context, studio.name),
-                );
-              }
+        final studioWidgets = item.studios!.map((studio) {
+          if (studio.id != null) {
+            final logoUrl = jellyfinService.getLogoUrl(studio.id!, maxHeight: 60);
+            if (logoUrl != null) {
+              return CachedNetworkImage(
+                imageUrl: logoUrl,
+                height: 60,
+                fit: BoxFit.contain,
+                cacheManager: CustomCacheManager(),
+                placeholder: (context, url) => const SizedBox(height: 60, width: 120),
+                errorWidget: (context, url, error) => _buildStudioName(context, studio.name),
+              );
             }
-            return _buildStudioName(context, studio.name);
-          }).toList(),
+          }
+          return _buildStudioName(context, studio.name);
+        }).toList();
+
+        return HorizontalCarousel(
+          height: 60,
+          spacing: 24,
+          children: studioWidgets,
         );
       },
     );

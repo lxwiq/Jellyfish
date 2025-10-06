@@ -27,3 +27,79 @@ final similarItemsProvider = FutureProvider.family<List<BaseItemDto>, String>((r
   return await jellyfinService.getSimilarItems(authState.user!.id, itemId, limit: 12);
 });
 
+/// Provider pour les saisons d'une série
+final seasonsProvider = FutureProvider.family<List<BaseItemDto>, String>((ref, seriesId) async {
+  final authState = ref.watch(authStateProvider);
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (authState.user == null || !jellyfinService.isInitialized) {
+    return [];
+  }
+
+  return await jellyfinService.getSeasons(seriesId, authState.user!.id);
+});
+
+/// State provider pour la saison sélectionnée (index dans la liste des saisons)
+final selectedSeasonIndexProvider = StateProvider.family<int, String>((ref, seriesId) => 0);
+
+/// Paramètres pour le provider d'épisodes
+class EpisodeParams {
+  final String seriesId;
+  final String? seasonId;
+  final int? seasonNumber;
+
+  const EpisodeParams({
+    required this.seriesId,
+    this.seasonId,
+    this.seasonNumber,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EpisodeParams &&
+          runtimeType == other.runtimeType &&
+          seriesId == other.seriesId &&
+          seasonId == other.seasonId &&
+          seasonNumber == other.seasonNumber;
+
+  @override
+  int get hashCode => Object.hash(seriesId, seasonId, seasonNumber);
+}
+
+/// Provider pour les épisodes d'une saison
+final episodesProvider = FutureProvider.family<List<BaseItemDto>, EpisodeParams>((ref, params) async {
+  final authState = ref.watch(authStateProvider);
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (authState.user == null || !jellyfinService.isInitialized) {
+    return [];
+  }
+
+  return await jellyfinService.getEpisodes(
+    params.seriesId,
+    authState.user!.id,
+    seasonId: params.seasonId,
+    seasonNumber: params.seasonNumber,
+  );
+});
+
+/// Provider pour obtenir le prochain épisode à regarder d'une série
+final nextUpEpisodeForSeriesProvider = FutureProvider.family<BaseItemDto?, String>((ref, seriesId) async {
+  final authState = ref.watch(authStateProvider);
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (authState.user == null || !jellyfinService.isInitialized) {
+    return null;
+  }
+
+  // Récupérer tous les prochains épisodes
+  final nextUpEpisodes = await jellyfinService.getNextUpEpisodes(authState.user!.id, limit: 50);
+
+  // Trouver le premier épisode de cette série
+  try {
+    return nextUpEpisodes.firstWhere((episode) => episode.seriesId == seriesId);
+  } catch (e) {
+    return null;
+  }
+});
