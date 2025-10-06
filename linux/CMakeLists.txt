@@ -42,8 +42,13 @@ endif()
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
   target_compile_options(${TARGET} PRIVATE -Wall -Werror)
-  target_compile_options(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-O3>")
+  # Optimisation pour la taille (-Os) au lieu de la vitesse (-O3) pour réduire la taille du binaire
+  target_compile_options(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-Os>")
   target_compile_definitions(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
+  # Suppression des symboles pour les builds Release
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_link_options(${TARGET} PRIVATE "-s")
+  endif()
 endfunction()
 
 # Flutter library and tool build rules.

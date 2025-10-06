@@ -1,2 +1,17 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
+
+// Optimisations pour réduire la taille du build iOS
+DEAD_CODE_STRIPPING = YES
+STRIP_INSTALLED_PRODUCT = YES
+STRIP_STYLE = non-global
+COPY_PHASE_STRIP = YES
+DEPLOYMENT_POSTPROCESSING = YES
+
+// Optimisation de la compilation
+GCC_OPTIMIZATION_LEVEL = s
+SWIFT_OPTIMIZATION_LEVEL = -O
+
+// Compression des assets
+COMPRESS_PNG_FILES = YES
+REMOVE_HEADERS_FROM_EMBEDDED_BUNDLES = YES
