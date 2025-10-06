@@ -1,0 +1,43 @@
+# Ignorer les fichiers et dossiers non nécessaires pour la compilation Windows
+
+# Dossiers de build existants
+build/
+build_windows/
+.dart_tool/
+
+# Fichiers de cache et temporaires
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Fichiers spécifiques aux plateformes non-Windows
+android/
+ios/
+linux/
+macos/
+web/
+
+# Fichiers de développement
+.vscode/
+.idea/
+*.iml
+
+# Fichiers de test
+test/
+
+# Fichiers Git
+.git/
+.gitignore
+
+# Fichiers macOS
+.DS_Store
+
+# Fichiers de documentation
+README.md
+README-Windows-Build.md
+
+# Scripts de build
+build-windows.sh
+
+# Dockerfile lui-même
+Dockerfile.windows

@@ -12,6 +12,11 @@
 .swiftpm/
 migrate_working_dir/
 
+# Docker builds
+build_windows/
+build_linux/
+jellyfish-windows.zip
+
 # IntelliJ related
 *.iml
 *.ipr
