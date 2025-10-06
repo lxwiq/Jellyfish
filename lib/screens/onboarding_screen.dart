@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../providers/services_provider.dart';
 import 'home/home_screen.dart';
 
 /// Écran d'onboarding avec flux de connexion en deux étapes
@@ -36,9 +37,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   /// Valide l'URL du serveur et passe à l'étape suivante
-  void _validateServerUrl() {
+  Future<void> _validateServerUrl() async {
     setState(() {
       _errorMessage = null;
+      _isLoading = true;
     });
 
     final serverUrl = _serverUrlController.text.trim();
@@ -46,6 +48,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (serverUrl.isEmpty) {
       setState(() {
         _errorMessage = 'Veuillez entrer l\'URL du serveur';
+        _isLoading = false;
       });
       return;
     }
@@ -54,16 +57,38 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
       setState(() {
         _errorMessage = 'L\'URL doit commencer par http:// ou https://';
+        _isLoading = false;
       });
       return;
     }
 
-    // Animation vers la page suivante
-    _pageController.animateToPage(
-      1,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
+    // Vérifier que le serveur est accessible
+    try {
+      final jellyfinService = ref.read(jellyfinServiceProvider);
+      await jellyfinService.checkServerHealth(serverUrl);
+
+      // Si la vérification réussit, passer à la page suivante
+      setState(() {
+        _isLoading = false;
+      });
+
+      // Animation vers la page suivante
+      _pageController.animateToPage(
+        1,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    } catch (e) {
+      setState(() {
+        // Extraire le message d'erreur propre
+        String errorMsg = e.toString();
+        if (errorMsg.startsWith('Exception: ')) {
+          errorMsg = errorMsg.substring('Exception: '.length);
+        }
+        _errorMessage = errorMsg;
+        _isLoading = false;
+      });
+    }
   }
 
   /// Tente de se connecter avec les identifiants
@@ -102,7 +127,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       }
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        // Extraire le message d'erreur propre
+        String errorMsg = e.toString();
+        if (errorMsg.startsWith('Exception: ')) {
+          errorMsg = errorMsg.substring('Exception: '.length);
+        }
+        _errorMessage = errorMsg;
         _isLoading = false;
       });
     }
@@ -198,24 +228,47 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ),
               keyboardType: TextInputType.url,
               autocorrect: false,
+              enabled: !_isLoading,
               onSubmitted: (_) => _validateServerUrl(),
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
-              Text(
-                _errorMessage!,
-                style: TextStyle(
-                  color: Colors.red[400],
-                  fontSize: 14,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
-                textAlign: TextAlign.center,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red[400],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: Colors.red[400],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _validateServerUrl,
+                onPressed: _isLoading ? null : _validateServerUrl,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.jellyfinPurple,
                   foregroundColor: AppColors.text6,
@@ -224,10 +277,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Suivant',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Suivant',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
               ),
             ),
           ],
@@ -309,13 +371,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
-              Text(
-                _errorMessage!,
-                style: TextStyle(
-                  color: Colors.red[400],
-                  fontSize: 14,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
-                textAlign: TextAlign.center,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red[400],
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: Colors.red[400],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 32),

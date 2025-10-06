@@ -1,6 +1,6 @@
-import 'package:chopper/chopper.dart' as chopper;
 import 'package:jellyfish/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:jellyfish/services/jellyfin_interceptor.dart';
+import 'package:jellyfish/services/custom_http_client.dart';
 import '../models/user.dart' as app_models;
 
 /// Service pour interagir avec l'API Jellyfin
@@ -27,8 +27,10 @@ class JellyfinService {
 
     // Créer l'API avec l'URL de base et l'intercepteur
     // Utiliser le converter par défaut de l'API (pas besoin de le spécifier)
+    // Utiliser un client HTTP personnalisé pour gérer les certificats SSL sur Windows
     _api = JellyfinOpenApi.create(
       baseUrl: Uri.parse(_currentServerUrl!),
+      httpClient: CustomHttpClient(),
       interceptors: [
         JellyfinInterceptor(
           accessToken: _accessToken,
@@ -67,11 +69,11 @@ class JellyfinService {
         final result = response.body!;
 
         if (result.accessToken == null || result.accessToken!.isEmpty) {
-          throw Exception('Token d\'accès manquant dans la réponse');
+          throw Exception('Token d\'accès manquant dans la réponse du serveur');
         }
 
         if (result.user == null) {
-          throw Exception('Données utilisateur manquantes dans la réponse');
+          throw Exception('Données utilisateur manquantes dans la réponse du serveur');
         }
 
         print('✅ Authentification réussie pour: ${result.user!.name}');
@@ -85,14 +87,37 @@ class JellyfinService {
 
         return (user, result.accessToken!);
       } else {
-        final errorMsg = 'Status ${response.statusCode}: ${response.error}';
-        print('❌ Échec de l\'authentification: $errorMsg');
-        throw Exception('Échec de l\'authentification: $errorMsg');
+        // Gérer les différents codes d'erreur HTTP
+        print('❌ Échec de l\'authentification - Status: ${response.statusCode}');
+
+        if (response.statusCode == 401) {
+          throw Exception('Nom d\'utilisateur ou mot de passe incorrect');
+        } else if (response.statusCode == 403) {
+          throw Exception('Accès refusé. Votre compte est peut-être désactivé');
+        } else if (response.statusCode == 404) {
+          throw Exception('Serveur Jellyfin introuvable. Vérifiez l\'URL');
+        } else if (response.statusCode == 500) {
+          throw Exception('Erreur interne du serveur Jellyfin');
+        } else if (response.statusCode == 503) {
+          throw Exception('Le serveur Jellyfin est temporairement indisponible');
+        } else {
+          throw Exception('Erreur de connexion (code ${response.statusCode})');
+        }
       }
     } catch (e) {
       print('❌ Erreur d\'authentification: $e');
-      if (e is Exception) rethrow;
-      throw Exception('Erreur lors de l\'authentification: $e');
+
+      // Fournir des messages d'erreur clairs
+      if (e.toString().contains('timeout')) {
+        throw Exception('Le serveur ne répond pas. Vérifiez votre connexion internet.');
+      } else if (e.toString().contains('SocketException') ||
+                 e.toString().contains('Failed host lookup')) {
+        throw Exception('Impossible de joindre le serveur. Vérifiez l\'URL et votre connexion internet.');
+      } else if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('Erreur lors de l\'authentification: $e');
+      }
     }
   }
 
@@ -123,6 +148,62 @@ class JellyfinService {
 
   /// Vérifie si le client est initialisé
   bool get isInitialized => _api != null;
+
+  /// Vérifie si le serveur est accessible et fonctionnel
+  /// Retourne true si le serveur répond correctement
+  /// Lance une exception avec un message clair en cas d'erreur
+  Future<bool> checkServerHealth(String serverUrl) async {
+    try {
+      print('🏥 Vérification de la santé du serveur: $serverUrl');
+
+      // Nettoyer l'URL (enlever le trailing slash si présent)
+      final cleanUrl = serverUrl.endsWith('/')
+          ? serverUrl.substring(0, serverUrl.length - 1)
+          : serverUrl;
+
+      // Créer un client temporaire pour le ping
+      // Utiliser un client HTTP personnalisé pour gérer les certificats SSL
+      final tempApi = JellyfinOpenApi.create(
+        baseUrl: Uri.parse(cleanUrl),
+        httpClient: CustomHttpClient(),
+      );
+
+      // Appeler l'endpoint de ping avec un timeout
+      final response = await tempApi.systemPingGet().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Le serveur ne répond pas (timeout après 10 secondes)');
+        },
+      );
+
+      if (response.isSuccessful) {
+        print('✅ Serveur accessible et fonctionnel');
+        return true;
+      } else {
+        print('❌ Le serveur a répondu avec une erreur: ${response.statusCode}');
+        throw Exception('Le serveur a répondu avec une erreur (code ${response.statusCode})');
+      }
+    } catch (e) {
+      print('❌ Erreur lors de la vérification du serveur: $e');
+
+      // Fournir des messages d'erreur clairs selon le type d'erreur
+      if (e.toString().contains('timeout')) {
+        throw Exception('Le serveur ne répond pas. Vérifiez l\'URL et votre connexion internet.');
+      } else if (e.toString().contains('SocketException') ||
+                 e.toString().contains('Failed host lookup')) {
+        throw Exception('Impossible de joindre le serveur. Vérifiez l\'URL et votre connexion internet.');
+      } else if (e.toString().contains('HandshakeException') ||
+                 e.toString().contains('CERTIFICATE_VERIFY_FAILED')) {
+        throw Exception('Erreur de certificat SSL. Le serveur utilise peut-être un certificat auto-signé.');
+      } else if (e.toString().contains('FormatException')) {
+        throw Exception('L\'URL du serveur n\'est pas valide.');
+      } else if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('Erreur de connexion au serveur: ${e.toString()}');
+      }
+    }
+  }
 
   /// Récupère les éléments en cours de lecture (resume)
   Future<List<BaseItemDto>> getResumeItems(String userId, {int limit = 10}) async {
