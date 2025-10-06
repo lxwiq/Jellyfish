@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/services_provider.dart';
+import '../../services/update_service.dart';
 import '../onboarding_screen.dart';
 
 /// Écran des paramètres de l'application
@@ -17,17 +19,36 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   PackageInfo? _packageInfo;
+  DateTime? _lastUpdateCheck;
+  DateTime? _lastUpdateApplied;
+  String? _currentPatchNumber;
+  List<UpdateHistoryEntry> _updateHistory = [];
 
   @override
   void initState() {
     super.initState();
     _loadPackageInfo();
+    _loadUpdateInfo();
   }
 
   Future<void> _loadPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
     setState(() {
       _packageInfo = info;
+    });
+  }
+
+  Future<void> _loadUpdateInfo() async {
+    final lastCheck = await UpdateService.instance.getLastUpdateCheck();
+    final lastApplied = await UpdateService.instance.getLastUpdateApplied();
+    final patchNumber = await UpdateService.instance.getCurrentPatchNumber();
+    final history = await UpdateService.instance.getUpdateHistory();
+
+    setState(() {
+      _lastUpdateCheck = lastCheck;
+      _lastUpdateApplied = lastApplied;
+      _currentPatchNumber = patchNumber;
+      _updateHistory = history;
     });
   }
 
@@ -141,6 +162,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 32),
 
+          // Section Mises à jour
+          _buildSectionTitle(context, 'Mises à jour', IconsaxPlusLinear.refresh),
+          const SizedBox(height: 12),
+          _buildUpdateSection(context),
+
+          const SizedBox(height: 32),
+
           // Bouton de déconnexion
           _buildLogoutButton(context),
 
@@ -236,6 +264,92 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildUpdateSection(BuildContext context) {
+    final dateFormat = DateFormat('dd/MM/yyyy à HH:mm');
+
+    return _buildInfoCard(
+      context,
+      children: [
+        _buildInfoRow(
+          context,
+          icon: IconsaxPlusLinear.tick_circle,
+          label: 'Statut',
+          value: _lastUpdateApplied != null
+              ? 'Application à jour'
+              : 'Aucune mise à jour appliquée',
+        ),
+        if (_currentPatchNumber != null) ...[
+          const Divider(height: 24),
+          _buildInfoRow(
+            context,
+            icon: IconsaxPlusLinear.code_circle,
+            label: 'Patch actuel',
+            value: _currentPatchNumber!,
+          ),
+        ],
+        if (_lastUpdateCheck != null) ...[
+          const Divider(height: 24),
+          _buildInfoRow(
+            context,
+            icon: IconsaxPlusLinear.clock,
+            label: 'Dernière vérification',
+            value: dateFormat.format(_lastUpdateCheck!),
+          ),
+        ],
+        if (_lastUpdateApplied != null) ...[
+          const Divider(height: 24),
+          _buildInfoRow(
+            context,
+            icon: IconsaxPlusLinear.refresh_circle,
+            label: 'Dernière mise à jour',
+            value: dateFormat.format(_lastUpdateApplied!),
+          ),
+        ],
+        if (_updateHistory.isNotEmpty) ...[
+          const Divider(height: 24),
+          const SizedBox(height: 8),
+          Text(
+            'Historique des mises à jour',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.text4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ..._updateHistory.take(5).map((entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  IconsaxPlusLinear.tick_square,
+                  size: 16,
+                  color: AppColors.jellyfinPurple.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    dateFormat.format(entry.date),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.text3,
+                    ),
+                  ),
+                ),
+                if (entry.patchNumber != null)
+                  Text(
+                    'Patch ${entry.patchNumber}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.text5,
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+          )),
+        ],
       ],
     );
   }
