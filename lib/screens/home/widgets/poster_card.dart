@@ -8,6 +8,7 @@ import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../item_detail/item_detail_screen.dart';
 import '../../../services/custom_cache_manager.dart';
 import '../../../widgets/card_constants.dart';
+import '../../../widgets/series_episode_badge.dart';
 
 /// Carte poster simple pour afficher un film/série
 class PosterCard extends ConsumerWidget {
@@ -38,6 +39,8 @@ class PosterCard extends ConsumerWidget {
     final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
     final imageUrl = getItemImageUrl(ref, item, maxWidth: optimalWidth);
     final title = item.name ?? 'Sans titre';
+    final metadata = getSeriesMetadata(item);
+    final isSeries = item.type?.value == 'Series';
 
     return SizedBox(
       width: cardWidth,
@@ -75,42 +78,59 @@ class PosterCard extends ConsumerWidget {
                         );
                       }
                     },
-                    child: imageUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            memCacheWidth: optimalWidth,
-                            cacheManager: CustomCacheManager(),
-                            placeholder: (context, url) => Container(
-                              color: AppColors.surface1,
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: AppColors.jellyfinPurple,
-                                  strokeWidth: 2,
+                    child: Stack(
+                      children: [
+                        // Image
+                        Positioned.fill(
+                          child: imageUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: optimalWidth,
+                                  cacheManager: CustomCacheManager(),
+                                  placeholder: (context, url) => Container(
+                                    color: AppColors.surface1,
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.jellyfinPurple,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Container(
+                                    color: AppColors.surface1,
+                                    child: const Center(
+                                      child: Icon(
+                                        IconsaxPlusLinear.video_square,
+                                        size: 40,
+                                        color: AppColors.text3,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  color: AppColors.surface1,
+                                  child: const Center(
+                                    child: Icon(
+                                      IconsaxPlusLinear.video_square,
+                                      size: 40,
+                                      color: AppColors.text3,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: AppColors.surface1,
-                              child: const Center(
-                                child: Icon(
-                                  IconsaxPlusLinear.video_square,
-                                  size: 40,
-                                  color: AppColors.text3,
-                                ),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: AppColors.surface1,
-                            child: const Center(
-                              child: Icon(
-                                IconsaxPlusLinear.video_square,
-                                size: 40,
-                                color: AppColors.text3,
-                              ),
+                        ),
+                        // Badge d'épisodes pour les séries
+                        if (isSeries)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: SeriesEpisodeBadge(
+                              item: item,
+                              size: cardWidth * 0.18, // Taille proportionnelle à la carte
                             ),
                           ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -126,9 +146,23 @@ class PosterCard extends ConsumerWidget {
               height: 1.2,
               fontSize: 12,
             ),
-            maxLines: 2,
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          // Métadonnées de la série (années et statut)
+          if (metadata != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              metadata,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.text3,
+                height: 1.2,
+                fontSize: 10,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ],
       ),
     );

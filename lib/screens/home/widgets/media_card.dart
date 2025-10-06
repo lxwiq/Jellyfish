@@ -8,6 +8,7 @@ import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../item_detail/item_detail_screen.dart';
 import '../../../services/custom_cache_manager.dart';
 import '../../../widgets/card_constants.dart';
+import '../../../widgets/series_episode_badge.dart';
 
 /// Carte pour afficher un média en cours de lecture
 class MediaCard extends ConsumerWidget {
@@ -36,6 +37,8 @@ class MediaCard extends ConsumerWidget {
     final title = item.name ?? 'Sans titre';
     final subtitle = getResumeTimeText(item);
     final progress = getProgressPercentage(item);
+    final metadata = getSeriesMetadata(item);
+    final isSeries = item.type?.value == 'Series';
 
     return SizedBox(
       width: cardWidth,
@@ -151,6 +154,17 @@ class MediaCard extends ConsumerWidget {
                         ),
                       ),
 
+                    // Badge d'épisodes pour les séries
+                    if (isSeries)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: SeriesEpisodeBadge(
+                          item: item,
+                          size: cardWidth * 0.12, // Taille proportionnelle à la carte
+                        ),
+                      ),
+
                     // Hover overlay
                     Positioned.fill(
                       child: Material(
@@ -190,9 +204,9 @@ class MediaCard extends ConsumerWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
-          // Sous-titre
+          // Sous-titre (temps restant ou métadonnées de série)
           Text(
-            subtitle.isNotEmpty ? subtitle : '',
+            metadata ?? (subtitle.isNotEmpty ? subtitle : ''),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: AppColors.text3,
               height: 1.2,

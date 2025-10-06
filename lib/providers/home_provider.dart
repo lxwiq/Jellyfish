@@ -194,3 +194,60 @@ String getLibraryItemCount(BaseItemDto library) {
   return childCount.toString();
 }
 
+/// Helper pour formater les années de diffusion d'une série
+/// Retourne un format comme "2020-2024" ou "2020" si pas de date de fin
+String? getSeriesYears(BaseItemDto item) {
+  if (item.type?.value != 'Series') return null;
+
+  final startYear = item.productionYear;
+  if (startYear == null) return null;
+
+  // Si la série a une date de fin
+  if (item.endDate != null) {
+    final endYear = item.endDate!.year;
+    if (endYear != startYear) {
+      return '$startYear-$endYear';
+    }
+  }
+
+  // Si la série est terminée mais sans endDate, utiliser juste l'année de début
+  if (item.status?.toLowerCase() == 'ended') {
+    return startYear.toString();
+  }
+
+  // Si la série est en cours, afficher "année-présent"
+  return '$startYear-';
+}
+
+/// Helper pour formater le statut d'une série
+/// Retourne "En production", "Terminée", etc.
+String? getSeriesStatus(BaseItemDto item) {
+  if (item.type?.value != 'Series') return null;
+
+  final status = item.status?.toLowerCase();
+  if (status == null || status.isEmpty) return null;
+
+  switch (status) {
+    case 'continuing':
+      return 'En production';
+    case 'ended':
+      return 'Terminée';
+    case 'unreleased':
+      return 'À venir';
+    default:
+      // Capitaliser la première lettre pour les autres statuts
+      return status[0].toUpperCase() + status.substring(1);
+  }
+}
+
+/// Helper pour formater les métadonnées complètes d'une série
+/// Retourne un format comme "2020-2024 • En production" ou "2015-2020 • Terminée"
+String? getSeriesMetadata(BaseItemDto item) {
+  final years = getSeriesYears(item);
+  final status = getSeriesStatus(item);
+
+  if (years == null && status == null) return null;
+  if (years != null && status != null) return '$years • $status';
+  return years ?? status;
+}
+

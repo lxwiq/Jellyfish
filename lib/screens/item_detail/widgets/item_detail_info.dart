@@ -131,12 +131,36 @@ class ItemDetailInfo extends ConsumerWidget {
       });
     }
 
-    // Année
-    if (item.productionYear != null && item.premiereDate == null) {
-      infos.add({
-        'label': 'Année',
-        'value': item.productionYear.toString(),
-      });
+    // Années de diffusion pour les séries
+    if (item.type?.value == 'Series') {
+      final startYear = item.productionYear;
+      if (startYear != null) {
+        String yearDisplay = startYear.toString();
+
+        // Si la série a une date de fin
+        if (item.endDate != null) {
+          final endYear = item.endDate!.year;
+          if (endYear != startYear) {
+            yearDisplay = '$startYear-$endYear';
+          }
+        } else if (item.status?.toLowerCase() != 'ended') {
+          // Si la série est en cours
+          yearDisplay = '$startYear-';
+        }
+
+        infos.add({
+          'label': 'Années de diffusion',
+          'value': yearDisplay,
+        });
+      }
+    } else {
+      // Année pour les films et autres
+      if (item.productionYear != null && item.premiereDate == null) {
+        infos.add({
+          'label': 'Année',
+          'value': item.productionYear.toString(),
+        });
+      }
     }
 
     // Durée
@@ -182,11 +206,32 @@ class ItemDetailInfo extends ConsumerWidget {
       });
     }
 
-    // Statut
+    // Statut (avec traduction pour les séries)
     if (item.status != null && item.status!.isNotEmpty) {
+      String statusDisplay = item.status!;
+
+      // Traduire les statuts courants pour les séries
+      if (item.type?.value == 'Series') {
+        final statusLower = item.status!.toLowerCase();
+        switch (statusLower) {
+          case 'continuing':
+            statusDisplay = 'En production';
+            break;
+          case 'ended':
+            statusDisplay = 'Terminée';
+            break;
+          case 'unreleased':
+            statusDisplay = 'À venir';
+            break;
+          default:
+            // Capitaliser la première lettre pour les autres statuts
+            statusDisplay = statusLower[0].toUpperCase() + statusLower.substring(1);
+        }
+      }
+
       infos.add({
         'label': 'Statut',
-        'value': item.status!,
+        'value': statusDisplay,
       });
     }
 
