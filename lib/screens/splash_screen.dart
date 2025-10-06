@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../services/update_service.dart';
 import 'home/home_screen.dart';
 import 'onboarding_screen.dart';
 
@@ -21,6 +22,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _fadeController;
   late Animation<double> _logoAnimation;
   late Animation<double> _fadeAnimation;
+
+  String _updateStatus = 'Chargement...';
+  bool _isDownloadingUpdate = false;
 
   @override
   void initState() {
@@ -65,14 +69,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     _fadeController.forward();
 
+    // Vérifier et télécharger les mises à jour Shorebird
+    await _checkForUpdates();
+
     // Vérifier le statut d'authentification
-    await Future.delayed(const Duration(milliseconds: 1000));
     ref.read(authStateProvider.notifier).checkAuthStatus();
 
     // Attendre la fin des animations puis naviguer
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       _navigateToNextScreen();
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    await for (final status in UpdateService.instance.checkAndDownloadUpdates()) {
+      if (mounted) {
+        setState(() {
+          _updateStatus = status.message;
+          _isDownloadingUpdate = status.isDownloading;
+        });
+      }
     }
   }
 
@@ -181,16 +198,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               builder: (context, child) {
                 return Opacity(
                   opacity: _fadeAnimation.value,
-                  child: SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.jellyfinPurple.withValues(alpha: 0.8),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            _isDownloadingUpdate
+                                ? AppColors.jellyfinPurple
+                                : AppColors.jellyfinPurple.withValues(alpha: 0.8),
+                          ),
+                          backgroundColor: AppColors.surface1,
+                        ),
                       ),
-                      backgroundColor: AppColors.surface1,
-                    ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _updateStatus,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.text4,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
