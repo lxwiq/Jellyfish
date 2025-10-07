@@ -33,10 +33,25 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: List APK files (debug)
+        run: |
+          echo "Listing APK directory:"
+          ls -la build/app/outputs/flutter-apk/ || echo "Directory not found"
+          ls -la build/app/outputs/apk/release/ || echo "Alternative directory not found"
+
       - name: Rename APK
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/Jellyfish-${VERSION}.apk
+          # Try both possible locations
+          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/Jellyfish-${VERSION}.apk
+          elif [ -f "build/app/outputs/apk/release/app-release.apk" ]; then
+            mkdir -p build/app/outputs/flutter-apk
+            mv build/app/outputs/apk/release/app-release.apk build/app/outputs/flutter-apk/Jellyfish-${VERSION}.apk
+          else
+            echo "APK not found in expected locations!"
+            exit 1
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -75,16 +90,34 @@ jobs:
           $version = "${{ github.ref_name }}".TrimStart('v')
           (Get-Content windows/installer.iss) -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`"" | Set-Content windows/installer.iss
 
+      - name: List build directory (debug)
+        shell: pwsh
+        run: |
+          Write-Host "Listing build directory:"
+          Get-ChildItem -Path build\windows -Recurse -ErrorAction SilentlyContinue
+
       - name: Build Installer
         shell: pwsh
         run: |
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer.iss
 
+      - name: List installer output (debug)
+        shell: pwsh
+        run: |
+          Write-Host "Listing installer output:"
+          Get-ChildItem -Path build\windows\installer -ErrorAction SilentlyContinue
+
       - name: Rename Installer
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart('v')
-          Move-Item "build\windows\installer\JellyfishSetup-*.exe" "build\windows\installer\JellyfishSetup-$version.exe"
+          $installerFiles = Get-ChildItem -Path "build\windows\installer\JellyfishSetup-*.exe"
+          if ($installerFiles) {
+            Move-Item $installerFiles[0].FullName "build\windows\installer\JellyfishSetup-$version.exe" -Force
+          } else {
+            Write-Error "Installer not found!"
+            exit 1
+          }
 
       - name: Upload Installer artifact
         uses: actions/upload-artifact@v4
@@ -115,6 +148,11 @@ jobs:
         with:
           name: windows-installer
           path: ./artifacts
+
+      - name: List downloaded artifacts (debug)
+        run: |
+          echo "Listing artifacts directory:"
+          ls -la ./artifacts/
 
       - name: Extract version
         id: version
