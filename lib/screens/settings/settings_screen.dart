@@ -9,6 +9,7 @@ import '../../providers/services_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/offline_download_provider.dart';
 import '../../services/update_service.dart';
+import '../../services/native_update_service.dart';
 import '../../services/custom_cache_manager.dart';
 import '../../models/download_status.dart';
 import '../onboarding_screen.dart';
@@ -18,6 +19,7 @@ import 'widgets/setting_switch.dart';
 import 'widgets/setting_slider.dart';
 import 'widgets/setting_button.dart';
 import 'widgets/storage_bar.dart';
+import 'native_update_dialog.dart';
 
 /// Écran des paramètres de l'application
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -888,13 +890,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
 
     try {
+      // 1. Vérifier les mises à jour Shorebird (code push)
       final updateService = UpdateService.instance;
+      bool shorebirdUpdateFound = false;
+
       await for (final status in updateService.checkAndDownloadUpdates()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(status.message),
+              content: Text('Shorebird: ${status.message}'),
               duration: const Duration(seconds: 2),
+            ),
+          );
+          if (status.message.contains('prête')) {
+            shorebirdUpdateFound = true;
+          }
+        }
+      }
+
+      // 2. Vérifier les mises à jour natives (GitHub Releases)
+      final nativeUpdateService = NativeUpdateService.instance;
+      final release = await nativeUpdateService.checkForUpdate();
+
+      if (mounted) {
+        if (release != null) {
+          // Afficher le dialog de mise à jour native
+          showDialog(
+            context: context,
+            builder: (context) => NativeUpdateDialog(release: release),
+          );
+        } else if (!shorebirdUpdateFound) {
+          // Aucune mise à jour disponible
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Application à jour'),
+              backgroundColor: AppColors.success,
+              duration: Duration(seconds: 2),
             ),
           );
         }

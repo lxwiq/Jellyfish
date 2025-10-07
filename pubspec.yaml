@@ -75,6 +75,10 @@ dependencies:
   sqflite: ^2.4.1
   permission_handler: ^11.3.1
 
+  # Native Updates
+  open_file: ^3.5.9
+  dio: ^5.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

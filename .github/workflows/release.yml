@@ -1,0 +1,156 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Déclenche sur les tags comme v1.0.0, v1.2.3, etc.
+
+jobs:
+  # ========== BUILD ANDROID ==========
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Rename APK
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/Jellyfish-${VERSION}.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/Jellyfish-*.apk
+
+  # ========== BUILD WINDOWS ==========
+  build-windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Setup Inno Setup
+        run: |
+          choco install innosetup -y
+
+      - name: Update version in installer script
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          (Get-Content windows/installer.iss) -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`"" | Set-Content windows/installer.iss
+
+      - name: Build Installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer.iss
+
+      - name: Rename Installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          Move-Item "build\windows\installer\JellyfishSetup-*.exe" "build\windows\installer\JellyfishSetup-$version.exe"
+
+      - name: Upload Installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/windows/installer/JellyfishSetup-*.exe
+
+  # ========== CREATE RELEASE ==========
+  create-release:
+    name: Create GitHub Release
+    needs: [build-android, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Android APK
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./artifacts
+
+      - name: Download Windows Installer
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: ./artifacts
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Jellyfish v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## 🎉 Jellyfish v${{ steps.version.outputs.VERSION }}
+            
+            ### 📥 Téléchargements
+            
+            - **Android**: `Jellyfish-${{ steps.version.outputs.VERSION }}.apk`
+            - **Windows**: `JellyfishSetup-${{ steps.version.outputs.VERSION }}.exe`
+            
+            ### 📝 Notes de version
+            
+            <!-- Ajoutez vos notes de version ici -->
+            
+            ### 🔄 Mise à jour
+            
+            L'application vérifie automatiquement les mises à jour au démarrage.
+            Vous pouvez aussi vérifier manuellement dans **Paramètres > Mises à jour**.
+            
+            ---
+            
+            **Installation Android** : Téléchargez l'APK et installez-le. Vous devrez peut-être autoriser l'installation depuis des sources inconnues.
+            
+            **Installation Windows** : Téléchargez et exécutez l'installateur. L'ancienne version sera automatiquement désinstallée.
+          files: |
+            ./artifacts/Jellyfish-*.apk
+            ./artifacts/JellyfishSetup-*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
