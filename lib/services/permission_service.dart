@@ -12,13 +12,20 @@ class PermissionService {
 
   /// Demande toutes les permissions nécessaires au démarrage
   Future<void> requestInitialPermissions() async {
-    // Demander uniquement la permission de notification
-    // Le stockage scopé ne nécessite pas de permission
-    await requestNotificationPermission();
+    // Sur desktop (Windows, macOS, Linux), pas besoin de demander de permissions
+    // Les notifications fonctionnent automatiquement
+    if (Platform.isAndroid || Platform.isIOS) {
+      await requestNotificationPermission();
+    }
   }
 
   /// Demande la permission de notification
   Future<bool> requestNotificationPermission() async {
+    // Sur desktop (Windows, macOS, Linux), pas besoin de permission
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      return true;
+    }
+
     if (_notificationPermissionRequested) {
       return await Permission.notification.isGranted;
     }
@@ -44,6 +51,11 @@ class PermissionService {
 
   /// Vérifie si la permission de notification est accordée
   Future<bool> hasNotificationPermission() async {
+    // Sur desktop, toujours true
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      return true;
+    }
+
     if (Platform.isAndroid) {
       final androidInfo = await _getAndroidVersion();
       if (androidInfo >= 33) {

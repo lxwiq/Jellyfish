@@ -54,6 +54,12 @@ final activeDownloadsProvider = FutureProvider<List<DownloadedItem>>((ref) async
   return await service.getActiveDownloads();
 });
 
+/// Provider pour le nombre de téléchargements actifs (pour le badge)
+final activeDownloadsCountProvider = FutureProvider<int>((ref) async {
+  final downloads = await ref.watch(activeDownloadsProvider.future);
+  return downloads.length;
+});
+
 /// Provider pour les téléchargements en cours
 final downloadingItemsProvider = FutureProvider<List<DownloadedItem>>((ref) async {
   final service = ref.watch(offlineDownloadServiceProvider);

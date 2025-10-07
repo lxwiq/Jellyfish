@@ -124,33 +124,48 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
 
       // 2. Vérifier les mises à jour natives (GitHub Releases)
-      setState(() {
-        _updateStatus = 'Vérification des mises à jour...';
-      });
+      if (mounted) {
+        setState(() {
+          _updateStatus = 'Vérification des mises à jour...';
+        });
+      }
 
       final nativeUpdateService = NativeUpdateService.instance;
+      LoggerService.instance.info('🔍 Début de la vérification des mises à jour natives...');
+
       final release = await nativeUpdateService.checkForUpdate();
 
-      if (mounted && release != null) {
-        LoggerService.instance.info('Mise à jour native disponible: ${release.version}');
+      if (release != null) {
+        LoggerService.instance.info('✅ Mise à jour native disponible: ${release.version}');
+        LoggerService.instance.info('   Tag: ${release.tagName}');
+        LoggerService.instance.info('   Assets: ${release.assets.length}');
 
-        // Afficher le dialog de mise à jour après un court délai
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Attendre que le widget soit complètement monté
+        await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          showDialog(
+          LoggerService.instance.info('📱 Affichage du dialog de mise à jour...');
+
+          // Utiliser showDialog avec await pour s'assurer qu'il s'affiche
+          await showDialog(
             context: context,
             barrierDismissible: false,
             builder: (context) => NativeUpdateDialog(release: release),
           );
+
+          LoggerService.instance.info('✅ Dialog de mise à jour fermé');
+        } else {
+          LoggerService.instance.warning('⚠️ Widget non monté, impossible d\'afficher le dialog');
         }
       } else {
-        LoggerService.instance.info('Aucune mise à jour native disponible');
+        LoggerService.instance.info('ℹ️ Aucune mise à jour native disponible');
       }
 
-      setState(() {
-        _updateStatus = 'Prêt';
-      });
+      if (mounted) {
+        setState(() {
+          _updateStatus = 'Prêt';
+        });
+      }
     } catch (e, stackTrace) {
       LoggerService.instance.error(
         'Erreur lors de la vérification des mises à jour',

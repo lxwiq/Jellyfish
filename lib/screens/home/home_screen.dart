@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/home_provider.dart';
+import '../../providers/offline_download_provider.dart';
+import '../../services/download_toast_service.dart';
 import '../settings/settings_screen.dart';
 import '../downloads/downloads_screen.dart';
 import '../jellyseerr/jellyseerr_screen.dart';
+import '../../widgets/active_downloads_modal.dart';
 import 'widgets/home_hero_carousel.dart';
 import 'widgets/continue_watching_section.dart';
 import 'widgets/next_up_section.dart';
@@ -27,11 +30,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Initialiser le service de toast après le premier frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        DownloadToastService.instance.initialize(context);
+        DownloadToastService.instance.listenToDownloads(ref);
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    DownloadToastService.instance.dispose();
     super.dispose();
   }
 
@@ -131,13 +143,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   tooltip: 'Rafraîchir',
                   onPressed: _isRefreshing ? null : _refreshHomeData,
                 ),
-              IconButton(
-                icon: const Icon(IconsaxPlusLinear.notification),
-                color: AppColors.text4,
-                onPressed: () {
-                  // TODO: Ouvrir les notifications
-                },
-              ),
+              // Bouton notifications avec badge de téléchargements
+              _buildNotificationButton(context, ref),
               IconButton(
                 icon: Image.asset(
                   'assets/icons/jellyseerr.png',
@@ -238,6 +245,91 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           ),
         ),
       ],
+    );
+  }
+
+  /// Construit le bouton de notifications avec badge de téléchargements
+  Widget _buildNotificationButton(BuildContext context, WidgetRef ref) {
+    final activeCountAsync = ref.watch(activeDownloadsCountProvider);
+
+    return activeCountAsync.when(
+      data: (count) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: const Icon(IconsaxPlusLinear.notification),
+              color: AppColors.text4,
+              tooltip: count > 0 ? 'Téléchargements en cours ($count)' : 'Notifications',
+              onPressed: () {
+                if (count > 0) {
+                  // Afficher la modal si des téléchargements sont en cours
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => const ActiveDownloadsModal(),
+                  );
+                } else {
+                  // TODO: Afficher les notifications normales
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Aucune notification'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+            // Badge avec le nombre de téléchargements
+            if (count > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.jellyfinPurple,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.background2,
+                      width: 2,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  child: Text(
+                    count > 9 ? '9+' : count.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+      loading: () => IconButton(
+        icon: const Icon(IconsaxPlusLinear.notification),
+        color: AppColors.text4,
+        tooltip: 'Notifications',
+        onPressed: () {
+          // TODO: Afficher les notifications
+        },
+      ),
+      error: (_, __) => IconButton(
+        icon: const Icon(IconsaxPlusLinear.notification),
+        color: AppColors.text4,
+        tooltip: 'Notifications',
+        onPressed: () {
+          // TODO: Afficher les notifications
+        },
+      ),
     );
   }
 }

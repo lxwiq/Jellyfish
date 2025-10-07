@@ -150,18 +150,18 @@ class NativeUpdateService {
   /// Installe l'APK sur Android
   Future<bool> _installAndroid(String filePath) async {
     try {
-      print('📱 Ouverture de l\'installateur Android...');
+      LoggerService.instance.info('📱 Ouverture de l\'installateur Android...');
       final result = await OpenFile.open(filePath);
-      
+
       if (result.type == ResultType.done) {
-        print('✅ Installateur ouvert avec succès');
+        LoggerService.instance.info('✅ Installateur ouvert avec succès');
         return true;
       } else {
-        print('❌ Erreur lors de l\'ouverture: ${result.message}');
+        LoggerService.instance.error('❌ Erreur lors de l\'ouverture: ${result.message}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors de l\'installation Android: $e');
+      LoggerService.instance.error('❌ Erreur lors de l\'installation Android: $e');
       return false;
     }
   }
@@ -169,24 +169,21 @@ class NativeUpdateService {
   /// Lance l'installateur sur Windows
   Future<bool> _installWindows(String filePath) async {
     try {
-      print('🪟 Lancement de l\'installateur Windows...');
-      
-      // Lancer l'installateur en mode silencieux
-      final result = await Process.run(
-        filePath,
-        ['/SILENT', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'],
-      );
+      LoggerService.instance.info('🪟 Lancement de l\'installateur Windows...');
 
-      if (result.exitCode == 0) {
-        print('✅ Installateur lancé avec succès');
-        // L'application va se fermer et se mettre à jour
-        exit(0);
+      // Sur Windows, on ne peut pas installer automatiquement sans privilèges admin
+      // On ouvre simplement l'installateur pour que l'utilisateur l'exécute
+      final result = await OpenFile.open(filePath);
+
+      if (result.type == ResultType.done) {
+        LoggerService.instance.info('✅ Installateur lancé avec succès');
+        return true;
       } else {
-        print('❌ Erreur lors du lancement: ${result.stderr}');
+        LoggerService.instance.error('❌ Erreur lors du lancement: ${result.message}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors de l\'installation Windows: $e');
+      LoggerService.instance.error('❌ Erreur lors de l\'installation Windows: $e');
       return false;
     }
   }
@@ -194,18 +191,18 @@ class NativeUpdateService {
   /// Ouvre le DMG sur macOS
   Future<bool> _installMacOS(String filePath) async {
     try {
-      print('🍎 Ouverture du DMG macOS...');
+      LoggerService.instance.info('🍎 Ouverture du DMG macOS...');
       final result = await OpenFile.open(filePath);
-      
+
       if (result.type == ResultType.done) {
-        print('✅ DMG ouvert avec succès');
+        LoggerService.instance.info('✅ DMG ouvert avec succès');
         return true;
       } else {
-        print('❌ Erreur lors de l\'ouverture: ${result.message}');
+        LoggerService.instance.error('❌ Erreur lors de l\'ouverture: ${result.message}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors de l\'installation macOS: $e');
+      LoggerService.instance.error('❌ Erreur lors de l\'installation macOS: $e');
       return false;
     }
   }
@@ -213,22 +210,22 @@ class NativeUpdateService {
   /// Ouvre l'AppImage sur Linux
   Future<bool> _installLinux(String filePath) async {
     try {
-      print('🐧 Ouverture de l\'AppImage Linux...');
-      
+      LoggerService.instance.info('🐧 Ouverture de l\'AppImage Linux...');
+
       // Rendre le fichier exécutable
       await Process.run('chmod', ['+x', filePath]);
-      
+
       final result = await OpenFile.open(filePath);
-      
+
       if (result.type == ResultType.done) {
-        print('✅ AppImage ouvert avec succès');
+        LoggerService.instance.info('✅ AppImage ouvert avec succès');
         return true;
       } else {
-        print('❌ Erreur lors de l\'ouverture: ${result.message}');
+        LoggerService.instance.error('❌ Erreur lors de l\'ouverture: ${result.message}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors de l\'installation Linux: $e');
+      LoggerService.instance.error('❌ Erreur lors de l\'installation Linux: $e');
       return false;
     }
   }

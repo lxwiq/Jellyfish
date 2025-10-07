@@ -1,9 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 import '../models/downloaded_item.dart';
 import '../models/download_status.dart';
 import '../providers/offline_download_provider.dart';
+import '../theme/app_colors.dart';
 import 'liquid_fill_progress_image.dart';
 
 /// Card affichant la progression d'un téléchargement
@@ -247,9 +252,7 @@ class DownloadProgressCard extends ConsumerWidget {
           )
         else if (currentItem.isCompleted)
           ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Implémenter la lecture hors ligne
-            },
+            onPressed: () => _playOffline(context, currentItem),
             icon: const Icon(Icons.play_arrow, size: 18),
             label: const Text('Play'),
             style: ElevatedButton.styleFrom(
@@ -340,6 +343,57 @@ class DownloadProgressCard extends ConsumerWidget {
   Future<void> _resumeDownload(WidgetRef ref, DownloadedItem currentItem) async {
     final service = ref.read(offlineDownloadServiceProvider);
     await service.resumeDownload(currentItem.id);
+  }
+
+  /// Lit le fichier téléchargé hors ligne
+  Future<void> _playOffline(BuildContext context, DownloadedItem currentItem) async {
+    try {
+      // Vérifier que le fichier existe
+      final file = File(currentItem.downloadPath);
+      if (!await file.exists()) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('File not found. Please re-download.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Créer un player local pour la lecture hors ligne
+      final player = Player();
+      final controller = VideoController(player);
+
+      // Ouvrir le fichier local
+      await player.open(Media('file://${currentItem.downloadPath}'), play: true);
+
+      if (context.mounted) {
+        // Naviguer vers un écran de lecture simple
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => _OfflineVideoPlayerScreen(
+              controller: controller,
+              player: player,
+              title: currentItem.title,
+            ),
+          ),
+        );
+
+        // Nettoyer après la fermeture
+        await player.dispose();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error playing offline: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   /// Affiche les détails
@@ -454,7 +508,7 @@ class DownloadProgressCard extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Download'),
-        content: const Text('Are you sure you want to delete this download?'),
+        content: Text('Are you sure you want to delete "${currentItem.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -469,15 +523,253 @@ class DownloadProgressCard extends ConsumerWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
-      final service = ref.read(offlineDownloadServiceProvider);
-      await service.deleteDownload(currentItem.id);
+    if (confirmed == true) {
+      try {
+        final service = ref.read(offlineDownloadServiceProvider);
+        await service.deleteDownload(currentItem.id);
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Download deleted')),
-        );
+        // Invalider les providers pour forcer le rafraîchissement
+        ref.invalidate(activeDownloadsProvider);
+        ref.invalidate(completedDownloadsProvider);
+        ref.invalidate(failedDownloadsProvider);
+        ref.invalidate(allDownloadsProvider);
+        ref.invalidate(downloadStatsProvider);
+        ref.invalidate(activeDownloadsCountProvider);
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${currentItem.title} deleted'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting download: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
+    }
+  }
+}
+
+/// Écran simple pour la lecture vidéo hors ligne
+class _OfflineVideoPlayerScreen extends StatefulWidget {
+  final VideoController controller;
+  final Player player;
+  final String title;
+
+  const _OfflineVideoPlayerScreen({
+    required this.controller,
+    required this.player,
+    required this.title,
+  });
+
+  @override
+  State<_OfflineVideoPlayerScreen> createState() => _OfflineVideoPlayerScreenState();
+}
+
+class _OfflineVideoPlayerScreenState extends State<_OfflineVideoPlayerScreen> {
+  bool _showControls = true;
+  BoxFit _videoFit = BoxFit.contain;
+
+  @override
+  void initState() {
+    super.initState();
+    // Mettre en plein écran
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    // Restaurer l'orientation
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showControls = !_showControls;
+          });
+        },
+        child: Stack(
+          children: [
+            // Vidéo
+            Center(
+              child: Video(
+                controller: widget.controller,
+                fit: _videoFit,
+              ),
+            ),
+
+            // Contrôles
+            if (_showControls)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.7),
+                      Colors.transparent,
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.7),
+                    ],
+                    stops: const [0.0, 0.3, 0.7, 1.0],
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Barre supérieure
+                    SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                widget.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                _videoFit == BoxFit.contain
+                                    ? Icons.fit_screen
+                                    : Icons.zoom_in_map,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _videoFit = _videoFit == BoxFit.contain
+                                      ? BoxFit.cover
+                                      : BoxFit.contain;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Bouton play/pause au centre
+                    StreamBuilder<bool>(
+                      stream: widget.player.stream.playing,
+                      builder: (context, snapshot) {
+                        final isPlaying = snapshot.data ?? false;
+                        return IconButton(
+                          icon: Icon(
+                            isPlaying ? Icons.pause : Icons.play_arrow,
+                            color: Colors.white,
+                            size: 64,
+                          ),
+                          onPressed: () {
+                            widget.player.playOrPause();
+                          },
+                        );
+                      },
+                    ),
+
+                    const Spacer(),
+
+                    // Barre inférieure avec timeline
+                    SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: StreamBuilder<Duration>(
+                          stream: widget.player.stream.position,
+                          builder: (context, positionSnapshot) {
+                            final position = positionSnapshot.data ?? Duration.zero;
+                            return StreamBuilder<Duration>(
+                              stream: widget.player.stream.duration,
+                              builder: (context, durationSnapshot) {
+                                final duration = durationSnapshot.data ?? Duration.zero;
+                                return Column(
+                                  children: [
+                                    Slider(
+                                      value: duration.inMilliseconds > 0
+                                          ? position.inMilliseconds.toDouble()
+                                          : 0,
+                                      min: 0,
+                                      max: duration.inMilliseconds.toDouble(),
+                                      activeColor: AppColors.jellyfinPurple,
+                                      inactiveColor: Colors.white.withOpacity(0.3),
+                                      onChanged: (value) {
+                                        widget.player.seek(Duration(milliseconds: value.toInt()));
+                                      },
+                                    ),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _formatDuration(position),
+                                          style: const TextStyle(color: Colors.white),
+                                        ),
+                                        Text(
+                                          _formatDuration(duration),
+                                          style: const TextStyle(color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    } else {
+      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
   }
 }
