@@ -1,6 +1,9 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:jellyfish/models/jellyseerr_models.dart';
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:jellyfish/services/custom_http_client.dart';
 
 /// Service pour interagir avec l'API Jellyseerr
@@ -18,9 +21,9 @@ class JellyseerrService {
         : serverUrl;
     _cookie = cookie;
 
-    print('🔧 Initialisation du client Jellyseerr');
-    print('   Server URL: $_serverUrl');
-    print('   Has Cookie: ${_cookie != null}');
+    LoggerService.instance.info('Initialisation du client Jellyseerr');
+    LoggerService.instance.debug('Server URL: $_serverUrl');
+    LoggerService.instance.debug('Has Cookie: ${_cookie != null}');
   }
 
   /// Authentifie un utilisateur avec les credentials Jellyfin
@@ -35,8 +38,8 @@ class JellyseerrService {
     }
 
     try {
-      print('🔐 Tentative d\'authentification Jellyseerr pour: $username');
-      print('🌐 URL du serveur: $_serverUrl');
+      await LoggerService.instance.info('Tentative d\'authentification Jellyseerr pour: $username');
+      await LoggerService.instance.info('URL du serveur: $_serverUrl');
 
       final url = Uri.parse('$_serverUrl/api/v1/auth/jellyfin');
       final response = await _httpClient.post(
@@ -50,7 +53,7 @@ class JellyseerrService {
         }),
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Réponse reçue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         // Extraire le cookie de la réponse
@@ -63,8 +66,8 @@ class JellyseerrService {
         final cookie = cookies.split(';').first;
         _cookie = cookie;
 
-        print('✅ Authentification Jellyseerr réussie');
-        print('   Cookie: ${cookie.substring(0, 20)}...');
+        await LoggerService.instance.info('Authentification Jellyseerr réussie');
+        await LoggerService.instance.debug('Cookie: ${cookie.substring(0, 20)}...');
 
         final authResponse =
             JellyseerrAuthResponse.fromJson(jsonDecode(response.body));
@@ -80,7 +83,7 @@ class JellyseerrService {
             'Erreur d\'authentification: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('❌ Erreur d\'authentification Jellyseerr: $e');
+      await LoggerService.instance.error('Erreur d\'authentification Jellyseerr', error: e);
       rethrow;
     }
   }
@@ -107,7 +110,7 @@ class JellyseerrService {
       final url = Uri.parse('$_serverUrl/api/v1/request')
           .replace(queryParameters: queryParams);
 
-      print('📡 Récupération des requêtes: $url');
+      await LoggerService.instance.info('Récupération des requêtes: $url');
 
       final response = await _httpClient.get(
         url,
@@ -117,17 +120,17 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Réponse reçue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('📦 Données JSON reçues: ${jsonEncode(data)}');
+        await LoggerService.instance.debug('Données JSON reçues: ${jsonEncode(data)}');
         try {
           return JellyseerrRequestsResponse.fromJson(data);
         } catch (e, stackTrace) {
-          print('❌ Erreur lors du parsing JSON: $e');
-          print('📋 Stack trace: $stackTrace');
-          print('📦 Données brutes: ${response.body}');
+          await LoggerService.instance.error('Erreur lors du parsing JSON', error: e, stackTrace: stackTrace);
+          await LoggerService.instance.debug('Stack trace: $stackTrace');
+          await LoggerService.instance.debug('Données brutes: ${response.body}');
           rethrow;
         }
       } else if (response.statusCode == 401) {
@@ -137,7 +140,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des requêtes: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des requêtes: $e');
+      await LoggerService.instance.error('Erreur lors de la récupération des requêtes', error: e);
       rethrow;
     }
   }
@@ -151,9 +154,9 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/request');
 
-      print('📡 Création d\'une nouvelle requête');
-      print('   Media ID: ${request.mediaId}');
-      print('   Media Type: ${request.mediaType}');
+      await LoggerService.instance.info('Creation d\'une nouvelle requete');
+      await LoggerService.instance.debug('Media ID: ${request.mediaId}');
+      await LoggerService.instance.debug('Media Type: ${request.mediaType}');
 
       final response = await _httpClient.post(
         url,
@@ -164,7 +167,7 @@ class JellyseerrService {
         body: jsonEncode(request.toJson()),
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -178,7 +181,7 @@ class JellyseerrService {
             'Erreur lors de la création de la requête: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la création de la requête: $e');
+      await LoggerService.instance.error('Erreur lors de la creation de la requete', error: e);
       rethrow;
     }
   }
@@ -196,7 +199,7 @@ class JellyseerrService {
         'page': page.toString(),
       });
 
-      print('🔍 Recherche de médias: $query');
+      await LoggerService.instance.info('Recherche de médias: $query');
 
       final response = await _httpClient.get(
         url,
@@ -206,7 +209,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Réponse reçue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -218,7 +221,7 @@ class JellyseerrService {
             'Erreur lors de la recherche: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la recherche: $e');
+      await LoggerService.instance.error('Erreur lors de la recherche', error: e);
       rethrow;
     }
   }
@@ -233,7 +236,7 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/$mediaType/$mediaId');
 
-      print('📡 Récupération des détails du média: $mediaId ($mediaType)');
+      await LoggerService.instance.info('Recuperation des details du media: $mediaId ($mediaType)');
 
       final response = await _httpClient.get(
         url,
@@ -243,7 +246,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -255,7 +258,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des détails: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des détails: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des details', error: e);
       rethrow;
     }
   }
@@ -269,7 +272,7 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/request/$requestId');
 
-      print('🗑️ Suppression de la requête: $requestId');
+      await LoggerService.instance.info('Suppression de la requete: $requestId');
 
       final response = await _httpClient.delete(
         url,
@@ -279,10 +282,10 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 204 || response.statusCode == 200) {
-        print('✅ Requête supprimée avec succès');
+        await LoggerService.instance.info('Requete supprimee avec succes');
       } else if (response.statusCode == 401) {
         throw Exception('Session expirée. Veuillez vous reconnecter.');
       } else {
@@ -290,7 +293,7 @@ class JellyseerrService {
             'Erreur lors de la suppression: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la suppression: $e');
+      await LoggerService.instance.error('Erreur lors de la suppression', error: e);
       rethrow;
     }
   }
@@ -319,7 +322,7 @@ class JellyseerrService {
       final url = Uri.parse('$_serverUrl/api/v1/discover/trending')
           .replace(queryParameters: queryParams);
 
-      print('🔥 Récupération des médias trending (page $page, genres: $genres)');
+      await LoggerService.instance.info('Recuperation des medias trending (page $page, genres: $genres)');
 
       final response = await _httpClient.get(
         url,
@@ -329,7 +332,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -341,7 +344,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des trending: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des trending: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des trending', error: e);
       rethrow;
     }
   }
@@ -370,7 +373,7 @@ class JellyseerrService {
       final url = Uri.parse('$_serverUrl/api/v1/discover/movies')
           .replace(queryParameters: queryParams);
 
-      print('🎬 Récupération des films populaires (page $page, genres: $genres)');
+      await LoggerService.instance.info('Recuperation des films populaires (page $page, genres: $genres)');
 
       final response = await _httpClient.get(
         url,
@@ -380,7 +383,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -392,7 +395,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des films: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des films: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des films', error: e);
       rethrow;
     }
   }
@@ -421,7 +424,7 @@ class JellyseerrService {
       final url = Uri.parse('$_serverUrl/api/v1/discover/tv')
           .replace(queryParameters: queryParams);
 
-      print('📺 Récupération des séries TV populaires (page $page, genres: $genres)');
+      await LoggerService.instance.info('Recuperation des series TV populaires (page $page, genres: $genres)');
 
       final response = await _httpClient.get(
         url,
@@ -431,7 +434,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -443,7 +446,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des séries: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des séries: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des series', error: e);
       rethrow;
     }
   }
@@ -457,7 +460,7 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/genres/movie');
 
-      print('🎭 Récupération des genres de films');
+      await LoggerService.instance.info('Recuperation des genres de films');
 
       final response = await _httpClient.get(
         url,
@@ -477,7 +480,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des genres: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des genres: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des genres', error: e);
       rethrow;
     }
   }
@@ -491,7 +494,7 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/genres/tv');
 
-      print('🎭 Récupération des genres de séries TV');
+      await LoggerService.instance.info('Recuperation des genres de series TV');
 
       final response = await _httpClient.get(
         url,
@@ -511,7 +514,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des genres: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des genres: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des genres', error: e);
       rethrow;
     }
   }
@@ -525,7 +528,7 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/movie/$movieId');
 
-      print('🎬 Récupération des détails du film $movieId');
+      await LoggerService.instance.info('Recuperation des details du film $movieId');
 
       final response = await _httpClient.get(
         url,
@@ -535,7 +538,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -547,7 +550,7 @@ class JellyseerrService {
             'Erreur lors de la récupération du film: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération du film: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation du film', error: e);
       rethrow;
     }
   }
@@ -561,7 +564,7 @@ class JellyseerrService {
     try {
       final url = Uri.parse('$_serverUrl/api/v1/tv/$tvId');
 
-      print('📺 Récupération des détails de la série $tvId');
+      await LoggerService.instance.info('Recuperation des details de la serie $tvId');
 
       final response = await _httpClient.get(
         url,
@@ -571,7 +574,7 @@ class JellyseerrService {
         },
       );
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -583,7 +586,7 @@ class JellyseerrService {
             'Erreur lors de la récupération de la série: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération de la série: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation de la serie', error: e);
       rethrow;
     }
   }
@@ -599,7 +602,7 @@ class JellyseerrService {
       final url = Uri.parse('$_serverUrl/api/v1/movie/$movieId/recommendations')
           .replace(queryParameters: {'page': page.toString()});
 
-      print('🎬 Récupération des recommandations pour le film $movieId');
+      await LoggerService.instance.info('Recuperation des recommandations pour le film $movieId');
 
       final response = await _httpClient.get(
         url,
@@ -619,7 +622,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des recommandations: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des recommandations: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des recommandations', error: e);
       rethrow;
     }
   }
@@ -635,7 +638,7 @@ class JellyseerrService {
       final url = Uri.parse('$_serverUrl/api/v1/tv/$tvId/recommendations')
           .replace(queryParameters: {'page': page.toString()});
 
-      print('📺 Récupération des recommandations pour la série $tvId');
+      await LoggerService.instance.info('Recuperation des recommandations pour la serie $tvId');
 
       final response = await _httpClient.get(
         url,
@@ -655,7 +658,7 @@ class JellyseerrService {
             'Erreur lors de la récupération des recommandations: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération des recommandations: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des recommandations', error: e);
       rethrow;
     }
   }

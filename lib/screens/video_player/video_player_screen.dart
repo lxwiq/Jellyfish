@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -75,7 +74,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       // Obtenir les informations du média
       final item = widget.item;
       final title = item?.name ?? 'Vidéo';
-      final subtitle = item?.type == 'Episode'
+      final subtitle = item?.type?.name == 'Episode'
           ? 'S${item?.parentIndexNumber ?? 0}E${item?.indexNumber ?? 0}'
           : null;
 
@@ -122,7 +121,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         );
       }
     } catch (e) {
-      print('❌ Erreur lors de la transition vers le cast: $e');
+      debugPrint('❌ Erreur lors de la transition vers le cast: $e');
     }
   }
 
@@ -144,7 +143,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         return;
       }
 
-      print('🎬 Récupération des informations de playback...');
+      debugPrint('🎬 Récupération des informations de playback...');
       await ref.read(videoPlayerProvider.notifier).fetchPlaybackInfo(
         widget.itemId,
         userId,
@@ -161,13 +160,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         return;
       }
 
-      print('🎬 URL de streaming: $streamUrl');
+      debugPrint('🎬 URL de streaming: $streamUrl');
 
       // Configurer la position de départ si disponible
       try {
         if (widget.startPositionTicks != null) {
           final startSeconds = widget.startPositionTicks! ~/ 10000000;
-          print('🎬 Ouverture de la vidéo avec position de départ: ${startSeconds}s');
+          debugPrint('🎬 Ouverture de la vidéo avec position de départ: ${startSeconds}s');
 
           // Ouvrir la vidéo et démarrer la lecture
           await player.open(
@@ -178,15 +177,15 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           // Attendre que la vidéo soit prête et positionner
           _scheduleSeek(startSeconds);
         } else {
-          print('🎬 Ouverture de la vidéo sans position de départ');
+          debugPrint('🎬 Ouverture de la vidéo sans position de départ');
           await player.open(
             Media(streamUrl),
             play: true,
           );
-          print('✅ Vidéo ouverte');
+          debugPrint('✅ Vidéo ouverte');
         }
       } catch (e) {
-        print('❌ Erreur lors de l\'ouverture de la vidéo: $e');
+        debugPrint('❌ Erreur lors de l\'ouverture de la vidéo: $e');
         setState(() {
           _hasError = true;
           _errorMessage = 'Erreur lors de l\'ouverture de la vidéo: $e';
@@ -208,7 +207,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       // Démarrer le reporting de progression après l'initialisation
       _startProgressReporting();
     } catch (e) {
-      print('❌ Erreur lors de l\'initialisation du player: $e');
+      debugPrint('❌ Erreur lors de l\'initialisation du player: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Erreur lors de l\'initialisation: $e';
@@ -231,7 +230,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final settings = settingsAsync.value;
     final saveInterval = settings?.video.progressSaveInterval ?? 5; // 5 secondes par défaut
 
-    print('⏱️ Intervalle de sauvegarde de progression: ${saveInterval}s');
+    debugPrint('⏱️ Intervalle de sauvegarde de progression: ${saveInterval}s');
 
     // Créer un timer pour reporter la progression selon l'intervalle configuré
     _progressReportTimer = Timer.periodic(Duration(seconds: saveInterval), (timer) {
@@ -307,7 +306,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   void _attemptSeek(int startSeconds, int attempt) async {
     if (attempt >= 10) {
-      print('⚠️ Abandon du positionnement après 10 tentatives');
+      debugPrint('⚠️ Abandon du positionnement après 10 tentatives');
       return;
     }
 
@@ -317,17 +316,17 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
     final duration = player.state.duration;
     if (duration.inSeconds > 0) {
-      print('🎬 Tentative ${attempt + 1}: Durée détectée: ${duration.inSeconds}s, positionnement à ${startSeconds}s');
+      debugPrint('🎬 Tentative ${attempt + 1}: Durée détectée: ${duration.inSeconds}s, positionnement à ${startSeconds}s');
       try {
         await player.seek(Duration(seconds: startSeconds));
-        print('✅ Vidéo positionnée à ${startSeconds}s après ${attempt + 1} tentative(s)');
+        debugPrint('✅ Vidéo positionnée à ${startSeconds}s après ${attempt + 1} tentative(s)');
       } catch (e) {
-        print('❌ Erreur lors du seek: $e');
+        debugPrint('❌ Erreur lors du seek: $e');
         // Réessayer
         _attemptSeek(startSeconds, attempt + 1);
       }
     } else {
-      print('🔄 Tentative ${attempt + 1}: Durée non disponible, nouvelle tentative...');
+      debugPrint('🔄 Tentative ${attempt + 1}: Durée non disponible, nouvelle tentative...');
       _attemptSeek(startSeconds, attempt + 1);
     }
   }

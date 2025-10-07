@@ -1,4 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'package:jellyfish/services/logger_service.dart';
+
 import '../models/downloaded_item.dart';
 import '../models/download_status.dart';
 
@@ -38,7 +41,7 @@ class OfflineNotificationService {
 
     if (initialized == true) {
       _initialized = true;
-      print('🔔 Service de notifications initialisé');
+      await LoggerService.instance.info('Service de notifications initialise');
 
       // Créer le canal de notification Android
       await _createNotificationChannel();
@@ -46,7 +49,7 @@ class OfflineNotificationService {
       // Demander les permissions de notification
       await requestPermissions();
     } else {
-      print('❌ Échec de l\'initialisation des notifications');
+      await LoggerService.instance.error('Echec de l\'initialisation des notifications');
     }
   }
 
@@ -71,14 +74,14 @@ class OfflineNotificationService {
 
   /// Gère le tap sur une notification
   void _onNotificationTapped(NotificationResponse response) {
-    print('🔔 Notification tapped: ${response.payload}');
+    LoggerService.instance.info('Notification appuyee: ${response.payload}');
     // TODO: Naviguer vers l'écran des téléchargements
   }
 
   /// Affiche une notification de téléchargement en cours
   Future<void> showDownloadNotification(DownloadedItem item) async {
     if (!_initialized) {
-      print('⚠️ Service de notifications non initialisé');
+      await LoggerService.instance.warning('Service de notifications non initialise');
       return;
     }
 

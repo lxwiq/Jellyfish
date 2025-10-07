@@ -42,7 +42,7 @@ class JellyseerrMediaCard extends StatelessWidget {
           ),
         );
       },
-      child: Container(
+      child: SizedBox(
         width: cardWidth,
         height: cardHeight,
         child: Column(

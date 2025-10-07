@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:jellyfish/models/jellyseerr_models.dart';
 import 'package:jellyfish/services/jellyseerr_service.dart';
 import 'package:jellyfish/services/storage_service.dart';
+import 'package:flutter/foundation.dart';
+
 import 'services_provider.dart';
 
 /// Provider pour l'état d'authentification Jellyseerr
@@ -221,26 +223,26 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
   /// Configure le serveur Jellyseerr
   Future<void> configureServer(String serverUrl) async {
     try {
-      print('🔧 Configuration du serveur Jellyseerr: $serverUrl');
-      
+      debugPrint('🔧 Configuration du serveur Jellyseerr: $serverUrl');
+
       // Sauvegarder l'URL du serveur
       await _storageService.saveJellyseerrServerUrl(serverUrl);
-      
+
       // Initialiser le client
       _jellyseerrService.initializeClient(serverUrl);
-      
-      print('✅ Serveur Jellyseerr configuré');
+
+      debugPrint('✅ Serveur Jellyseerr configuré');
     } catch (e) {
-      print('❌ Erreur lors de la configuration du serveur: $e');
+      debugPrint('❌ Erreur lors de la configuration du serveur: $e');
       rethrow;
     }
   }
 
   /// Connexion avec les credentials Jellyfin
   Future<void> login(String username, String password) async {
-    print('\n🚀 ========== DÉBUT LOGIN JELLYSEERR ==========');
-    print('👤 Username: $username');
-    print('🔒 Password: ${password.replaceAll(RegExp(r'.'), '*')} (${password.length} caractères)');
+    debugPrint('\n🚀 ========== DÉBUT LOGIN JELLYSEERR ==========');
+    debugPrint('👤 Username: $username');
+    debugPrint('🔒 Password: ${password.replaceAll(RegExp(r'.'), '*')} (${password.length} caractères)');
 
     state = JellyseerrAuthState.loading();
 
@@ -251,28 +253,28 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
         throw Exception('Serveur Jellyseerr non configuré');
       }
 
-      print('\n🔐 Tentative d\'authentification...');
+      debugPrint('\n🔐 Tentative d\'authentification...');
       // Authentification avec l'API Jellyseerr
       final (authResponse, cookie) =
           await _jellyseerrService.authenticate(username, password);
-      print('✅ Authentification réussie !');
-      print('   User ID: ${authResponse.id}');
-      print('   Display Name: ${authResponse.displayName}');
+      debugPrint('✅ Authentification réussie !');
+      debugPrint('   User ID: ${authResponse.id}');
+      debugPrint('   Display Name: ${authResponse.displayName}');
 
-      print('\n💾 Sauvegarde du cookie...');
+      debugPrint('\n💾 Sauvegarde du cookie...');
       // Sauvegarder le cookie
       await _storageService.saveJellyseerrCookie(cookie);
-      print('   ✓ Cookie sauvegardé');
+      debugPrint('   ✓ Cookie sauvegardé');
 
       // Mettre à jour l'état
       state = JellyseerrAuthState.authenticated(authResponse);
-      print('\n✅ ========== LOGIN JELLYSEERR RÉUSSI ==========\n');
+      debugPrint('\n✅ ========== LOGIN JELLYSEERR RÉUSSI ==========\n');
     } catch (e, stackTrace) {
-      print('\n❌ ========== ERREUR LOGIN JELLYSEERR ==========');
-      print('❌ Erreur: $e');
-      print('📚 Stack trace:');
-      print(stackTrace);
-      print('❌ ====================================\n');
+      debugPrint('\n❌ ========== ERREUR LOGIN JELLYSEERR ==========');
+      debugPrint('❌ Erreur: $e');
+      debugPrint('📚 Stack trace:');
+      debugPrint(stackTrace.toString());
+      debugPrint('❌ ====================================\n');
 
       state = JellyseerrAuthState.unauthenticated(
           'Erreur de connexion: ${e.toString()}');
@@ -283,19 +285,19 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
   /// Déconnexion
   Future<void> logout() async {
     try {
-      print('👋 Déconnexion de Jellyseerr');
+      debugPrint('👋 Déconnexion de Jellyseerr');
       await _storageService.clearJellyseerr();
       state = JellyseerrAuthState.unauthenticated();
-      print('✅ Déconnexion réussie');
+      debugPrint('✅ Déconnexion réussie');
     } catch (e) {
-      print('❌ Erreur lors de la déconnexion: $e');
+      debugPrint('❌ Erreur lors de la déconnexion: $e');
       rethrow;
     }
   }
 
   /// Vérifie et restaure la session si elle existe
   Future<void> checkSession() async {
-    print('🔍 Vérification de la session Jellyseerr...');
+    debugPrint('🔍 Vérification de la session Jellyseerr...');
 
     state = JellyseerrAuthState.loading();
 
@@ -304,7 +306,7 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
       final hasSession = await _storageService.hasValidJellyseerrSession();
 
       if (!hasSession) {
-        print('❌ Aucune session valide trouvée');
+        debugPrint('❌ Aucune session valide trouvée');
         state = JellyseerrAuthState.unauthenticated();
         return;
       }
@@ -314,7 +316,7 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
       final cookie = await _storageService.getJellyseerrCookie();
 
       if (serverUrl == null || cookie == null) {
-        print('❌ Données de session incomplètes');
+        debugPrint('❌ Données de session incomplètes');
         state = JellyseerrAuthState.unauthenticated();
         return;
       }
@@ -324,14 +326,14 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
 
       // Pour l'instant, on considère que la session est valide
       // Dans une version future, on pourrait faire un appel API pour vérifier
-      print('✅ Session Jellyseerr restaurée');
+      debugPrint('✅ Session Jellyseerr restaurée');
       state = JellyseerrAuthState.authenticated(
         JellyseerrAuthResponse(
           displayName: 'User', // Placeholder
         ),
       );
     } catch (e) {
-      print('❌ Erreur lors de la vérification de la session: $e');
+      debugPrint('❌ Erreur lors de la vérification de la session: $e');
       state = JellyseerrAuthState.unauthenticated();
     }
   }
@@ -345,7 +347,7 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
     try {
       return await _jellyseerrService.createRequest(request);
     } catch (e) {
-      print('❌ Erreur lors de la création de la requête: $e');
+      debugPrint('❌ Erreur lors de la création de la requête: $e');
       rethrow;
     }
   }
@@ -359,7 +361,7 @@ class JellyseerrAuthNotifier extends Notifier<JellyseerrAuthState> {
     try {
       await _jellyseerrService.deleteRequest(requestId);
     } catch (e) {
-      print('❌ Erreur lors de la suppression de la requête: $e');
+      debugPrint('❌ Erreur lors de la suppression de la requête: $e');
       rethrow;
     }
   }

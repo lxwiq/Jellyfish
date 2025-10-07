@@ -42,7 +42,7 @@ class LoggerService {
       await log('INFO', 'Plateforme: ${Platform.operatingSystem}');
       
     } catch (e) {
-      print('❌ Erreur lors de l\'initialisation du logger: $e');
+      debugPrint('❌ Erreur lors de l\'initialisation du logger: $e');
     }
   }
 
@@ -51,9 +51,9 @@ class LoggerService {
     try {
       // En mode debug, afficher aussi dans la console
       if (kDebugMode) {
-        print('[$level] $message');
-        if (error != null) print('Error: $error');
-        if (stackTrace != null) print('StackTrace: $stackTrace');
+        debugPrint('[$level] $message');
+        if (error != null) debugPrint('Error: $error');
+        if (stackTrace != null) debugPrint('StackTrace: $stackTrace');
       }
 
       // Si pas initialisé, initialiser maintenant
@@ -92,7 +92,7 @@ class LoggerService {
         flush: true,
       );
     } catch (e) {
-      print('❌ Erreur lors de l\'écriture du log: $e');
+      debugPrint('❌ Erreur lors de l\'écriture du log: $e');
     }
   }
 
@@ -121,7 +121,7 @@ class LoggerService {
 
       await log('INFO', 'Log file rotated');
     } catch (e) {
-      print('❌ Erreur lors de la rotation du log: $e');
+      debugPrint('❌ Erreur lors de la rotation du log: $e');
     }
   }
 
@@ -141,11 +141,11 @@ class LoggerService {
       if (files.length > _maxLogFiles) {
         for (var i = _maxLogFiles; i < files.length; i++) {
           await files[i].delete();
-          print('🗑️  Ancien log supprimé: ${files[i].path}');
+          debugPrint('🗑️  Ancien log supprimé: ${files[i].path}');
         }
       }
     } catch (e) {
-      print('❌ Erreur lors du nettoyage des logs: $e');
+      debugPrint('❌ Erreur lors du nettoyage des logs: $e');
     }
   }
 
@@ -169,7 +169,7 @@ class LoggerService {
 
       return files;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des logs: $e');
+      debugPrint('❌ Erreur lors de la récupération des logs: $e');
       return [];
     }
   }
@@ -192,7 +192,7 @@ class LoggerService {
       }
       await log('INFO', 'Tous les logs ont été supprimés');
     } catch (e) {
-      print('❌ Erreur lors de la suppression des logs: $e');
+      debugPrint('❌ Erreur lors de la suppression des logs: $e');
     }
   }
 
@@ -222,7 +222,7 @@ class LoggerService {
 
       return exportFile;
     } catch (e) {
-      print('❌ Erreur lors de l\'export des logs: $e');
+      debugPrint('❌ Erreur lors de l\'export des logs: $e');
       return null;
     }
   }

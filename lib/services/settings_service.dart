@@ -1,11 +1,14 @@
 import 'dart:convert';
+
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings.dart';
 
 /// Service de gestion des paramètres de l'application
 class SettingsService {
   static const String _keySettings = 'app_settings';
-  
+
   final SharedPreferences _prefs;
 
   SettingsService(this._prefs);
@@ -13,20 +16,20 @@ class SettingsService {
   /// Charge les paramètres depuis le stockage
   Future<AppSettings> loadSettings() async {
     final settingsJson = _prefs.getString(_keySettings);
-    
+
     if (settingsJson == null) {
-      print('📝 Aucun paramètre sauvegardé, utilisation des valeurs par défaut');
+      await LoggerService.instance.info('Aucun paramètre sauvegardé, utilisation des valeurs par défaut');
       return AppSettings.defaults();
     }
-    
+
     try {
       final settingsMap = jsonDecode(settingsJson) as Map<String, dynamic>;
       final settings = AppSettings.fromJson(settingsMap);
-      print('✅ Paramètres chargés avec succès');
+      await LoggerService.instance.info('Paramètres chargés avec succès');
       return settings;
     } catch (e) {
-      print('❌ Erreur lors du chargement des paramètres: $e');
-      print('   Utilisation des valeurs par défaut');
+      await LoggerService.instance.error('Erreur lors du chargement des paramètres', error: e);
+      await LoggerService.instance.info('Utilisation des valeurs par défaut');
       return AppSettings.defaults();
     }
   }
@@ -36,9 +39,9 @@ class SettingsService {
     try {
       final settingsJson = jsonEncode(settings.toJson());
       await _prefs.setString(_keySettings, settingsJson);
-      print('✅ Paramètres sauvegardés avec succès');
+      await LoggerService.instance.info('Paramètres sauvegardés avec succès');
     } catch (e) {
-      print('❌ Erreur lors de la sauvegarde des paramètres: $e');
+      await LoggerService.instance.error('Erreur lors de la sauvegarde des paramètres', error: e);
       rethrow;
     }
   }
@@ -46,7 +49,7 @@ class SettingsService {
   /// Réinitialise tous les paramètres aux valeurs par défaut
   Future<void> resetSettings() async {
     await _prefs.remove(_keySettings);
-    print('🔄 Paramètres réinitialisés aux valeurs par défaut');
+    await LoggerService.instance.info('Paramètres réinitialisés aux valeurs par défaut');
   }
 
   /// Exporte les paramètres en JSON
@@ -60,7 +63,7 @@ class SettingsService {
       final settingsMap = jsonDecode(json) as Map<String, dynamic>;
       return AppSettings.fromJson(settingsMap);
     } catch (e) {
-      print('❌ Erreur lors de l\'importation des paramètres: $e');
+      LoggerService.instance.error('Erreur lors de l\'importation des paramètres', error: e);
       rethrow;
     }
   }

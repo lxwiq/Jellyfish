@@ -1,4 +1,7 @@
 import 'dart:io';
+
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -25,7 +28,7 @@ class OfflineStorageService {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final dbPath = path.join(documentsDirectory.path, _dbName);
 
-    print('📦 Initialisation de la base de données: $dbPath');
+    await LoggerService.instance.info('Initialisation de la base de données: $dbPath');
 
     return await openDatabase(
       dbPath,
@@ -37,7 +40,7 @@ class OfflineStorageService {
 
   /// Crée les tables lors de la première initialisation
   Future<void> _onCreate(Database db, int version) async {
-    print('📦 Création de la table $_tableName');
+    await LoggerService.instance.info('Création de la table $_tableName');
 
     await db.execute('''
       CREATE TABLE $_tableName (
@@ -66,12 +69,12 @@ class OfflineStorageService {
     await db.execute('CREATE INDEX idx_item_id ON $_tableName(item_id)');
     await db.execute('CREATE INDEX idx_created_at ON $_tableName(created_at)');
 
-    print('✅ Table $_tableName créée avec succès');
+    await LoggerService.instance.info('Table $_tableName créée avec succès');
   }
 
   /// Gère les migrations de base de données
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    print('📦 Migration de la base de données: v$oldVersion -> v$newVersion');
+    await LoggerService.instance.info('Migration de la base de données: v$oldVersion -> v$newVersion');
     // Gérer les migrations futures ici
   }
 
@@ -85,7 +88,7 @@ class OfflineStorageService {
       item.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    print('✅ Item inséré: ${item.title}');
+    await LoggerService.instance.info('Item inséré: ${item.title}');
   }
 
   /// Met à jour un item téléchargé
@@ -184,7 +187,7 @@ class OfflineStorageService {
       whereArgs: [id],
     );
 
-    print('🗑️ Item supprimé: $id');
+    await LoggerService.instance.info('Item supprimé: $id');
   }
 
   /// Supprime tous les items avec un statut donné
@@ -226,7 +229,7 @@ class OfflineStorageService {
 
     if (!await downloadsDir.exists()) {
       await downloadsDir.create(recursive: true);
-      print('📁 Répertoire de téléchargement créé: ${downloadsDir.path}');
+      await LoggerService.instance.info('Répertoire de téléchargement créé: ${downloadsDir.path}');
     }
 
     return downloadsDir;
@@ -264,7 +267,7 @@ class OfflineStorageService {
         return await file.length();
       }
     } catch (e) {
-      print('❌ Erreur lors de la récupération de la taille du fichier: $e');
+      await LoggerService.instance.error('Erreur lors de la récupération de la taille du fichier', error: e);
     }
     return 0;
   }
@@ -275,7 +278,7 @@ class OfflineStorageService {
       final file = File(filePath);
       if (await file.exists()) {
         await file.delete();
-        print('🗑️ Fichier supprimé: $filePath');
+        await LoggerService.instance.info('Fichier supprimé: $filePath');
       }
 
       // Supprimer le répertoire parent s'il est vide
@@ -284,11 +287,11 @@ class OfflineStorageService {
         final contents = await dir.list().toList();
         if (contents.isEmpty) {
           await dir.delete();
-          print('🗑️ Répertoire vide supprimé: ${dir.path}');
+          await LoggerService.instance.info('Répertoire vide supprimé: ${dir.path}');
         }
       }
     } catch (e) {
-      print('❌ Erreur lors de la suppression du fichier: $e');
+      await LoggerService.instance.error('Erreur lors de la suppression du fichier', error: e);
     }
   }
 
@@ -296,7 +299,7 @@ class OfflineStorageService {
   Future<void> cleanupFailedDownloads() async {
     await deleteItemsByStatus(DownloadStatus.failed);
     await deleteItemsByStatus(DownloadStatus.cancelled);
-    print('🧹 Téléchargements échoués/annulés nettoyés');
+    await LoggerService.instance.info('Téléchargements échoués/annulés nettoyés');
   }
 
   /// Supprime tous les téléchargements
@@ -305,19 +308,18 @@ class OfflineStorageService {
     for (final item in items) {
       await deleteDownloadedItem(item.id);
     }
-    print('🗑️ Tous les téléchargements supprimés');
+    await LoggerService.instance.info('Tous les téléchargements supprimés');
   }
 
   /// Obtient l'espace disque disponible
   Future<int> getAvailableSpace() async {
     try {
-      final dir = await getDownloadsDirectory();
-      final stat = await dir.stat();
+      await getDownloadsDirectory();
       // Note: Cette méthode ne donne pas l'espace disponible réel
       // Pour une implémentation complète, utiliser un plugin natif
       return 0; // Placeholder
     } catch (e) {
-      print('❌ Erreur lors de la récupération de l\'espace disponible: $e');
+      await LoggerService.instance.error('Erreur lors de la récupération de l\'espace disponible', error: e);
       return 0;
     }
   }
@@ -327,7 +329,7 @@ class OfflineStorageService {
     if (_database != null) {
       await _database!.close();
       _database = null;
-      print('📦 Base de données fermée');
+      await LoggerService.instance.info('Base de données fermée');
     }
   }
 
@@ -335,7 +337,7 @@ class OfflineStorageService {
   Future<void> reset() async {
     final db = await database;
     await db.delete(_tableName);
-    print('🔄 Base de données réinitialisée');
+    await LoggerService.instance.info('Base de données réinitialisée');
   }
 }
 

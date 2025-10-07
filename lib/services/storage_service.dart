@@ -1,4 +1,7 @@
 import 'dart:convert';
+
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
@@ -43,7 +46,7 @@ class StorageService {
   User? getUser() {
     final userJson = _prefs.getString(_keyUser);
     if (userJson == null) return null;
-    
+
     try {
       final userMap = jsonDecode(userJson) as Map<String, dynamic>;
       return User.fromJson(userMap);
@@ -87,9 +90,9 @@ class StorageService {
       // Générer un nouveau DeviceId unique
       deviceId = _uuid.v4();
       _prefs.setString(_keyDeviceId, deviceId);
-      print('🆔 Nouveau DeviceId généré: $deviceId');
+      LoggerService.instance.info('Nouveau DeviceId genere: $deviceId');
     } else {
-      print('🆔 DeviceId existant: $deviceId');
+      LoggerService.instance.info('DeviceId existant: $deviceId');
     }
 
     return deviceId;

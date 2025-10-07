@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:shorebird_code_push/shorebird_code_push.dart' as shorebird;
 
 /// Service pour gérer les mises à jour Shorebird
@@ -64,7 +67,7 @@ class UpdateService {
         isDownloading: false,
       );
     } catch (e) {
-      print('❌ Erreur lors du téléchargement de la mise à jour: $e');
+      await LoggerService.instance.error('Erreur lors du téléchargement de la mise à jour', error: e);
       yield UpdateCheckStatus(
         message: 'Erreur de mise à jour',
         isDownloading: false,
@@ -80,7 +83,7 @@ class UpdateService {
       final status = await _shorebirdUpdater.checkForUpdate();
       return status == shorebird.UpdateStatus.outdated;
     } catch (e) {
-      print('❌ Erreur lors de la vérification de mise à jour: $e');
+      await LoggerService.instance.error('Erreur lors de la vérification de mise à jour', error: e);
       return false;
     }
   }
@@ -93,7 +96,7 @@ class UpdateService {
       final currentPatch = await _shorebirdUpdater.readCurrentPatch();
       return currentPatch?.number;
     } catch (e) {
-      print('❌ Erreur lors de la récupération du numéro de patch: $e');
+      await LoggerService.instance.error('Erreur lors de la récupération du numéro de patch', error: e);
       return null;
     }
   }

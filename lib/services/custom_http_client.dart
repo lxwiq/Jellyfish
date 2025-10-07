@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
+import 'package:jellyfish/services/logger_service.dart';
+
+
 
 /// Client HTTP personnalisé avec gestion des certificats SSL
 /// Résout le problème "CERTIFICATE_VERIFY_FAILED" sur Windows
@@ -12,15 +15,15 @@ class CustomHttpClient extends http.BaseClient {
   /// Crée un client HTTP avec gestion appropriée des certificats SSL
   factory CustomHttpClient() {
     final ioClient = HttpClient();
-    
+
     // Configuration pour accepter les certificats auto-signés en développement
     // ATTENTION: En production, vous devriez valider correctement les certificats
     ioClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
       // Pour le développement, accepter tous les certificats
       // En production, vous devriez vérifier le certificat correctement
-      print('⚠️ Certificat SSL non vérifié pour $host:$port');
-      print('   Issuer: ${cert.issuer}');
-      print('   Subject: ${cert.subject}');
+      LoggerService.instance.warning('Certificat SSL non verifie pour $host:$port');
+      LoggerService.instance.info('Issuer: ${cert.issuer}');
+      LoggerService.instance.info('Subject: ${cert.subject}');
       return true; // Accepter le certificat
     };
 
@@ -31,11 +34,11 @@ class CustomHttpClient extends http.BaseClient {
   /// Utilise les certificats système de Windows
   factory CustomHttpClient.secure() {
     final ioClient = HttpClient();
-    
+
     // Sur Windows, utiliser les certificats du système
     // Le SecurityContext par défaut devrait utiliser les certificats Windows
     ioClient.badCertificateCallback = null; // Validation stricte
-    
+
     return CustomHttpClient._internal(IOClient(ioClient));
   }
 

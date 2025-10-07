@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:background_downloader/background_downloader.dart';
 import 'package:uuid/uuid.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -45,7 +48,7 @@ class OfflineDownloadService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    print('📥 Initialisation du service de téléchargement');
+    await LoggerService.instance.info('Initialisation du service de telechargement');
 
     // Démarrer le FileDownloader et reprogrammer les tâches tuées
     await FileDownloader().start(doRescheduleKilledTasks: true);
@@ -79,22 +82,22 @@ class OfflineDownloadService {
     _setupConnectivityMonitoring();
 
     _initialized = true;
-    print('✅ Service de téléchargement initialisé');
+    await LoggerService.instance.info('Service de telechargement initialise');
   }
 
   /// Configure la surveillance de la connectivité
   void _setupConnectivityMonitoring() {
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen(
       (results) {
-        final isConnected = results.any((result) => 
+        final isConnected = results.any((result) =>
           result != ConnectivityResult.none
         );
-        
+
         if (isConnected) {
-          print('🌐 Connexion rétablie - reprise des téléchargements');
+          LoggerService.instance.info('Connexion retablie - reprise des telechargements');
           _resumeAllPausedDownloads();
         } else {
-          print('📡 Connexion perdue - pause des téléchargements');
+          LoggerService.instance.info('Connexion perdue - pause des telechargements');
           _pauseAllActiveDownloads();
         }
       },
@@ -114,7 +117,7 @@ class OfflineDownloadService {
       throw Exception('Item ID is null');
     }
 
-    print('📥 Démarrage du téléchargement: ${item.name}');
+    await LoggerService.instance.info('Demarrage du telechargement: ${item.name}');
 
     // Vérifier si déjà téléchargé
     final existing = await _storageService.getDownloadedItemByJellyfinId(item.id!);
@@ -194,13 +197,13 @@ class OfflineDownloadService {
       // Note: Le taskId peut être différent après l'enqueue
       _taskIdMapping[task.taskId] = downloadId;
 
-      print('✅ Téléchargement en file d\'attente: ${item.name}');
-      print('🔗 Mapping créé: ${task.taskId} -> $downloadId');
+      await LoggerService.instance.info('Telechargement en file d\'attente: ${item.name}');
+      await LoggerService.instance.debug('Mapping cree: ${task.taskId} -> $downloadId');
 
       // Afficher la notification
       await _notificationService.showDownloadNotification(downloadedItem);
     } else {
-      print('❌ Échec de la mise en file d\'attente');
+      await LoggerService.instance.error('Echec de la mise en file d\'attente');
       throw Exception('Failed to enqueue download');
     }
 
@@ -215,14 +218,14 @@ class OfflineDownloadService {
     final downloadId = _taskIdMapping[taskId];
 
     if (downloadId == null) {
-      print('⚠️ Mapping non trouvé pour taskId: $taskId');
+      await LoggerService.instance.warning('Mapping non trouve pour taskId: $taskId');
       return;
     }
 
     final item = await _storageService.getDownloadedItem(downloadId);
 
     if (item == null) {
-      print('⚠️ Item non trouvé pour la mise à jour: $downloadId');
+      await LoggerService.instance.warning('Item non trouve pour la mise a jour: $downloadId');
       return;
     }
 
@@ -240,7 +243,7 @@ class OfflineDownloadService {
     await _storageService.updateDownloadedItem(updatedItem);
 
     // Émettre l'événement de progression
-    print('📤 Émission update: ${updatedItem.title} - ${updatedItem.progressPercentage} - ${updatedItem.status}');
+    await LoggerService.instance.debug('Emission update: ${updatedItem.title} - ${updatedItem.progressPercentage} - ${updatedItem.status}');
     _progressController.add(updatedItem);
 
     // Mettre à jour la notification
@@ -252,7 +255,7 @@ class OfflineDownloadService {
     DownloadedItem item,
     TaskStatusUpdate update,
   ) async {
-    print('📊 Mise à jour du statut: ${item.title} -> ${update.status}');
+    await LoggerService.instance.info('Mise a jour du statut: ${item.title} -> ${update.status}');
 
     switch (update.status) {
       case TaskStatus.running:
@@ -304,7 +307,7 @@ class OfflineDownloadService {
     final task = _activeTasks[downloadId];
     if (task != null) {
       await FileDownloader().pause(task);
-      print('⏸️ Téléchargement en pause: $downloadId');
+      await LoggerService.instance.info('Telechargement en pause: $downloadId');
     }
   }
 
@@ -313,13 +316,13 @@ class OfflineDownloadService {
     final task = _activeTasks[downloadId];
     if (task != null) {
       await FileDownloader().resume(task);
-      print('▶️ Téléchargement repris: $downloadId');
+      await LoggerService.instance.info('Telechargement repris: $downloadId');
     } else {
       // Si la tâche n'est pas active, la recréer
       final item = await _storageService.getDownloadedItem(downloadId);
       if (item != null && (item.isPaused || item.isFailed)) {
         // TODO: Recréer la tâche de téléchargement
-        print('🔄 Recréation de la tâche de téléchargement');
+        await LoggerService.instance.info('Recreation de la tache de telechargement');
       }
     }
   }
@@ -330,7 +333,7 @@ class OfflineDownloadService {
     if (task != null) {
       await FileDownloader().cancel(task);
       _activeTasks.remove(downloadId);
-      print('❌ Téléchargement annulé: $downloadId');
+      await LoggerService.instance.warning('Telechargement annule: $downloadId');
     }
   }
 
@@ -339,7 +342,7 @@ class OfflineDownloadService {
     await cancelDownload(downloadId);
     await _storageService.deleteDownloadedItem(downloadId);
     await _notificationService.cancelNotification(downloadId.hashCode);
-    print('🗑️ Téléchargement supprimé: $downloadId');
+    await LoggerService.instance.info('Telechargement supprime: $downloadId');
   }
 
   /// Pause tous les téléchargements actifs
@@ -381,7 +384,7 @@ class OfflineDownloadService {
       // Récupérer tous les enregistrements de tâches depuis la base de données du package
       final records = await FileDownloader().database.allRecords();
 
-      print('🔄 Restauration du mapping pour ${records.length} tâches');
+      await LoggerService.instance.info('Restauration du mapping pour ${records.length} taches');
 
       int restoredCount = 0;
       int orphanedCount = 0;
@@ -393,8 +396,8 @@ class OfflineDownloadService {
         // Extraire le downloadId depuis les métadonnées
         final downloadId = task.metaData;
 
-        if (downloadId == null || downloadId.isEmpty) {
-          print('⚠️ Tâche sans métadonnées: $taskId');
+        if (downloadId.isEmpty) {
+          await LoggerService.instance.warning('Tache sans metadonnees: $taskId');
           orphanedCount++;
           // Annuler la tâche orpheline
           await FileDownloader().cancelTaskWithId(taskId);
@@ -405,7 +408,7 @@ class OfflineDownloadService {
         final item = await _storageService.getDownloadedItem(downloadId);
 
         if (item == null) {
-          print('⚠️ Item non trouvé pour downloadId: $downloadId (taskId: $taskId)');
+          await LoggerService.instance.warning('Item non trouve pour downloadId: $downloadId (taskId: $taskId)');
           orphanedCount++;
           // Annuler la tâche orpheline
           await FileDownloader().cancelTaskWithId(taskId);
@@ -425,9 +428,9 @@ class OfflineDownloadService {
         restoredCount++;
       }
 
-      print('✅ Mapping restauré: $restoredCount tâches, $orphanedCount orphelines nettoyées');
+      await LoggerService.instance.info('Mapping restaure: $restoredCount taches, $orphanedCount orphelines nettoyees');
     } catch (e) {
-      print('❌ Erreur lors de la restauration du mapping: $e');
+      await LoggerService.instance.error('Erreur lors de la restauration du mapping', error: e);
     }
   }
 
@@ -437,7 +440,7 @@ class OfflineDownloadService {
       DownloadStatus.downloading,
     );
 
-    print('🔄 Restauration de ${downloadingItems.length} téléchargements');
+    await LoggerService.instance.info('Restauration de ${downloadingItems.length} telechargements');
 
     for (final item in downloadingItems) {
       // Marquer comme en attente pour reprise
@@ -471,7 +474,7 @@ class OfflineDownloadService {
   void dispose() {
     _progressController.close();
     _connectivitySubscription?.cancel();
-    print('🧹 Service de téléchargement nettoyé');
+    LoggerService.instance.info('Service de telechargement nettoye');
   }
 }
 

@@ -149,21 +149,4 @@ class ResumePlayButton extends StatelessWidget {
     }
   }
 
-  String _formatCurrentTime() {
-    final userData = item.userData;
-    if (userData == null) return '';
-    
-    final playbackPositionTicks = userData.playbackPositionTicks ?? 0;
-    final currentSeconds = playbackPositionTicks ~/ 10000000;
-    
-    final hours = currentSeconds ~/ 3600;
-    final minutes = (currentSeconds % 3600) ~/ 60;
-    final seconds = currentSeconds % 60;
-    
-    if (hours > 0) {
-      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    } else {
-      return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-  }
 }

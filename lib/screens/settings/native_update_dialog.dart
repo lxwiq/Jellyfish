@@ -79,7 +79,7 @@ class _NativeUpdateDialogState extends State<NativeUpdateDialog> {
                       Text(
                         'Publiée le $formattedDate',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer.withOpacity(0.7),
+                          color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -101,10 +101,10 @@ class _NativeUpdateDialogState extends State<NativeUpdateDialog> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+                  color: theme.colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
               child: Text(
@@ -190,6 +190,11 @@ class _NativeUpdateDialogState extends State<NativeUpdateDialog> {
       _downloadProgress = 0.0;
     });
 
+    // Capture Navigator & ScaffoldMessenger before async gaps to avoid using context later
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+
     final success = await NativeUpdateService.instance.downloadAndInstall(
       widget.release,
       onProgress: (progress) {
@@ -199,31 +204,34 @@ class _NativeUpdateDialogState extends State<NativeUpdateDialog> {
       },
     );
 
+    if (!context.mounted) return;
+
+
     if (success) {
       setState(() {
         _statusMessage = 'Installation en cours...';
       });
-      
+
       // Attendre un peu pour que l'utilisateur voie le message
       await Future.delayed(const Duration(seconds: 1));
-      
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
+
+      if (!context.mounted) return;
+      navigator.pop();
     } else {
       setState(() {
         _isDownloading = false;
         _statusMessage = 'Erreur lors du téléchargement';
       });
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors du téléchargement de la mise à jour'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+
+      if (!context.mounted) return;
+
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors du téléchargement de la mise à jour'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

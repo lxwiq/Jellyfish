@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:jellyfish/theme/app_colors.dart';
 import 'package:jellyfish/providers/jellyseerr_provider.dart';
-import 'package:jellyfish/providers/auth_provider.dart';
 
 /// Écran de configuration et d'authentification Jellyseerr redesigné
 class JellyseerrSetupScreen extends ConsumerStatefulWidget {
@@ -90,8 +89,6 @@ class _JellyseerrSetupScreenState extends ConsumerState<JellyseerrSetupScreen> {
 
     try {
       // Utiliser les credentials Jellyfin si disponibles
-      final jellyfinAuthState = ref.read(authStateProvider);
-      
       String username = _usernameController.text.trim();
       String password = _passwordController.text.trim();
 

@@ -56,7 +56,7 @@ class MediaCastSection extends StatelessWidget {
         ? 'https://image.tmdb.org/t/p/w185${member.profilePath}'
         : null;
 
-    return Container(
+    return SizedBox(
       width: isDesktop ? 140 : 110,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

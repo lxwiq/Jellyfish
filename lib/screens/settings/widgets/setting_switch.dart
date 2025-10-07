@@ -72,7 +72,7 @@ class SettingSwitch extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.jellyfinPurple,
+            activeThumbColor: AppColors.jellyfinPurple,
           ),
         ],
       ),

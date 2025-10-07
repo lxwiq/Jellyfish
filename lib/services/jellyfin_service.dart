@@ -2,6 +2,9 @@ import 'package:jellyfish/jellyfin/jellyfin_open_api.swagger.dart';
 import 'package:jellyfish/services/jellyfin_interceptor.dart';
 import 'package:jellyfish/services/custom_http_client.dart';
 import '../models/user.dart' as app_models;
+import 'package:jellyfish/services/logger_service.dart';
+
+
 
 /// Service pour interagir avec l'API Jellyfin
 class JellyfinService {
@@ -20,10 +23,10 @@ class JellyfinService {
     _accessToken = accessToken;
     _deviceId = deviceId;
 
-    print('🔧 Initialisation du client Jellyfin');
-    print('   Server URL: $_currentServerUrl');
-    print('   Device ID: $_deviceId');
-    print('   Has Token: ${_accessToken != null}');
+    LoggerService.instance.info('Initialisation du client Jellyfin');
+    LoggerService.instance.debug('Server URL: $_currentServerUrl');
+    LoggerService.instance.debug('Device ID: $_deviceId');
+    LoggerService.instance.debug('Has Token: ${_accessToken != null}');
 
     // Créer l'API avec l'URL de base et l'intercepteur
     // Utiliser le converter par défaut de l'API (pas besoin de le spécifier)
@@ -51,19 +54,19 @@ class JellyfinService {
     }
 
     try {
-      print('🔐 Tentative d\'authentification pour: $username');
-      print('🌐 URL du serveur: $_currentServerUrl');
+      await LoggerService.instance.info('Tentative d\'authentification pour: $username');
+      await LoggerService.instance.debug('URL du serveur: $_currentServerUrl');
 
       final authRequest = AuthenticateUserByName(
         username: username,
         pw: password,
       );
 
-      print('📤 Envoi de la requête d\'authentification...');
+      await LoggerService.instance.info('Envoi de la requete d\'authentification...');
       final response = await _api!.usersAuthenticateByNamePost(body: authRequest);
 
-      print('📥 Réponse reçue - Status: ${response.statusCode}');
-      print('📥 isSuccessful: ${response.isSuccessful}');
+      await LoggerService.instance.info('Reponse recue - Status: ${response.statusCode}');
+      await LoggerService.instance.debug('isSuccessful: ${response.isSuccessful}');
 
       if (response.isSuccessful && response.body != null) {
         final result = response.body!;
@@ -76,7 +79,7 @@ class JellyfinService {
           throw Exception('Données utilisateur manquantes dans la réponse du serveur');
         }
 
-        print('✅ Authentification réussie pour: ${result.user!.name}');
+        await LoggerService.instance.info('Authentification reussie pour: ${result.user!.name}');
 
         // Convertir UserDto en notre modèle User
         final user = _convertUserDtoToUser(result.user!);
@@ -88,7 +91,7 @@ class JellyfinService {
         return (user, result.accessToken!);
       } else {
         // Gérer les différents codes d'erreur HTTP
-        print('❌ Échec de l\'authentification - Status: ${response.statusCode}');
+        await LoggerService.instance.warning('Echec de l\'authentification - Status: ${response.statusCode}');
 
         if (response.statusCode == 401) {
           throw Exception('Nom d\'utilisateur ou mot de passe incorrect');
@@ -105,7 +108,7 @@ class JellyfinService {
         }
       }
     } catch (e) {
-      print('❌ Erreur d\'authentification: $e');
+      await LoggerService.instance.error('Erreur d\'authentification', error: e);
 
       // Fournir des messages d'erreur clairs
       if (e.toString().contains('timeout')) {
@@ -154,7 +157,7 @@ class JellyfinService {
   /// Lance une exception avec un message clair en cas d'erreur
   Future<bool> checkServerHealth(String serverUrl) async {
     try {
-      print('🏥 Vérification de la santé du serveur: $serverUrl');
+      await LoggerService.instance.info('Verification de la sante du serveur: $serverUrl');
 
       // Nettoyer l'URL (enlever le trailing slash si présent)
       final cleanUrl = serverUrl.endsWith('/')
@@ -177,14 +180,14 @@ class JellyfinService {
       );
 
       if (response.isSuccessful) {
-        print('✅ Serveur accessible et fonctionnel');
+        await LoggerService.instance.info('Serveur accessible et fonctionnel');
         return true;
       } else {
-        print('❌ Le serveur a répondu avec une erreur: ${response.statusCode}');
+        await LoggerService.instance.warning('Le serveur a repondu avec une erreur: ${response.statusCode}');
         throw Exception('Le serveur a répondu avec une erreur (code ${response.statusCode})');
       }
     } catch (e) {
-      print('❌ Erreur lors de la vérification du serveur: $e');
+      await LoggerService.instance.error('Erreur lors de la verification du serveur', error: e);
 
       // Fournir des messages d'erreur clairs selon le type d'erreur
       if (e.toString().contains('timeout')) {
@@ -229,7 +232,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des éléments en cours: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des elements en cours', error: e);
       return [];
     }
   }
@@ -258,7 +261,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des prochains épisodes: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des prochains episodes', error: e);
       return [];
     }
   }
@@ -284,7 +287,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des derniers éléments: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des derniers elements', error: e);
       return [];
     }
   }
@@ -320,7 +323,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des items hero: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des items hero', error: e);
       return [];
     }
   }
@@ -343,7 +346,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des bibliothèques: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des bibliotheques', error: e);
       return [];
     }
   }
@@ -453,7 +456,7 @@ class JellyfinService {
       }
       return BaseItemDtoQueryResult(items: [], totalRecordCount: 0);
     } catch (e) {
-      print('❌ Erreur lors de la récupération des items de la bibliothèque: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des items de la bibliotheque', error: e);
       return BaseItemDtoQueryResult(items: [], totalRecordCount: 0);
     }
   }
@@ -475,7 +478,7 @@ class JellyfinService {
       }
       return null;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des détails de l\'item: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des details de l\'item', error: e);
       return null;
     }
   }
@@ -502,7 +505,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des items similaires: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des items similaires', error: e);
       return [];
     }
   }
@@ -528,7 +531,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des saisons: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des saisons', error: e);
       return [];
     }
   }
@@ -564,7 +567,7 @@ class JellyfinService {
       }
       return [];
     } catch (e) {
-      print('❌ Erreur lors de la récupération des épisodes: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des episodes', error: e);
       return [];
     }
   }
@@ -641,29 +644,29 @@ class JellyfinService {
     }
 
     try {
-      print('🎬 Récupération des informations de playback pour: $itemId');
+      await LoggerService.instance.info('Recuperation des informations de playback pour: $itemId');
       final response = await _api!.itemsItemIdPlaybackInfoGet(
         itemId: itemId,
         userId: userId,
       );
 
       if (response.isSuccessful && response.body != null) {
-        print('✅ Informations de playback récupérées');
+        await LoggerService.instance.info('Informations de playback recuperees');
         final mediaSources = response.body!.mediaSources;
         if (mediaSources != null && mediaSources.isNotEmpty) {
-          print('   📦 ${mediaSources.length} source(s) média trouvée(s)');
+          await LoggerService.instance.debug('${mediaSources.length} source(s) media trouvee(s)');
           final firstSource = mediaSources.first;
           final audioStreams = firstSource.mediaStreams?.where((s) => s.type == MediaStreamType.audio).length ?? 0;
           final subtitleStreams = firstSource.mediaStreams?.where((s) => s.type == MediaStreamType.subtitle).length ?? 0;
-          print('   🎵 $audioStreams piste(s) audio');
-          print('   💬 $subtitleStreams piste(s) de sous-titres');
+          await LoggerService.instance.debug('$audioStreams piste(s) audio');
+          await LoggerService.instance.debug('$subtitleStreams piste(s) de sous-titres');
         }
         return response.body;
       }
-      print('⚠️ Aucune information de playback disponible');
+      await LoggerService.instance.warning('Aucune information de playback disponible');
       return null;
     } catch (e) {
-      print('❌ Erreur lors de la récupération des informations de playback: $e');
+      await LoggerService.instance.error('Erreur lors de la recuperation des informations de playback', error: e);
       return null;
     }
   }
@@ -681,12 +684,12 @@ class JellyfinService {
     String? mediaSourceId,
   }) async {
     if (_api == null) {
-      print('❌ Client API non initialisé');
+      await LoggerService.instance.error('Client API non initialisé');
       return false;
     }
 
     try {
-      print('▶️ Signalement du début de lecture: $itemId');
+      await LoggerService.instance.info('Signalement du debut de lecture: $itemId');
       final playbackStartInfo = PlaybackStartInfo(
         itemId: itemId,
         positionTicks: positionTicks ?? 0,
@@ -703,14 +706,14 @@ class JellyfinService {
       );
 
       if (response.isSuccessful) {
-        print('✅ Début de lecture signalé');
+        await LoggerService.instance.info('Debut de lecture signale');
         return true;
       } else {
-        print('⚠️ Échec du signalement de début de lecture: ${response.statusCode}');
+        await LoggerService.instance.warning('Echec du signalement de debut de lecture: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors du signalement de début de lecture: $e');
+      await LoggerService.instance.error('Erreur lors du signalement de debut de lecture', error: e);
       return false;
     }
   }
@@ -726,7 +729,7 @@ class JellyfinService {
     String? mediaSourceId,
   }) async {
     if (_api == null) {
-      print('❌ Client API non initialisé');
+      await LoggerService.instance.error('Client API non initialisé');
       return false;
     }
 
@@ -750,11 +753,11 @@ class JellyfinService {
         // Ne pas logger à chaque fois pour éviter le spam
         return true;
       } else {
-        print('⚠️ Échec du signalement de progression: ${response.statusCode}');
+        await LoggerService.instance.warning('Echec du signalement de progression: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors du signalement de progression: $e');
+      await LoggerService.instance.error('Erreur lors du signalement de progression', error: e);
       return false;
     }
   }
@@ -767,12 +770,12 @@ class JellyfinService {
     String? mediaSourceId,
   }) async {
     if (_api == null) {
-      print('❌ Client API non initialisé');
+      await LoggerService.instance.error('Client API non initialisé');
       return false;
     }
 
     try {
-      print('⏹️ Signalement de l\'arrêt de lecture: $itemId à ${positionTicks ~/ 10000000}s');
+      await LoggerService.instance.info('Signalement de l\'arret de lecture: $itemId a ${positionTicks ~/ 10000000}s');
       final playbackStopInfo = PlaybackStopInfo(
         itemId: itemId,
         positionTicks: positionTicks,
@@ -784,14 +787,14 @@ class JellyfinService {
       );
 
       if (response.isSuccessful) {
-        print('✅ Arrêt de lecture signalé');
+        await LoggerService.instance.info('Arret de lecture signale');
         return true;
       } else {
-        print('⚠️ Échec du signalement d\'arrêt de lecture: ${response.statusCode}');
+        await LoggerService.instance.warning('Echec du signalement d\'arret de lecture: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      print('❌ Erreur lors du signalement d\'arrêt de lecture: $e');
+      await LoggerService.instance.error('Erreur lors du signalement d\'arret de lecture', error: e);
       return false;
     }
   }

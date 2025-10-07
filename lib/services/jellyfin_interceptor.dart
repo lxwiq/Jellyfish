@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'package:chopper/chopper.dart';
+import 'package:jellyfish/services/logger_service.dart';
+
+
 
 /// Intercepteur pour ajouter les headers requis par l'API Jellyfin
 class JellyfinInterceptor implements Interceptor {
@@ -22,10 +25,10 @@ class JellyfinInterceptor implements Interceptor {
     Chain<BodyType> chain,
   ) async {
     final authHeader = _buildAuthHeader();
-    print('🔑 Jellyfin Interceptor - Adding headers');
-    print('   URL: ${chain.request.url}');
-    print('   Method: ${chain.request.method}');
-    print('   X-Emby-Authorization: $authHeader');
+    await LoggerService.instance.debug('Jellyfin Interceptor - Adding headers');
+    await LoggerService.instance.debug('URL: ${chain.request.url}');
+    await LoggerService.instance.debug('Method: ${chain.request.method}');
+    await LoggerService.instance.debug('X-Emby-Authorization: $authHeader');
 
     final request = applyHeaders(
       chain.request,
@@ -36,16 +39,16 @@ class JellyfinInterceptor implements Interceptor {
       override: false,
     );
 
-    print('   All headers: ${request.headers}');
+    await LoggerService.instance.debug('All headers: ${request.headers}');
 
     final response = await chain.proceed(request);
 
-    print('📨 Response received:');
-    print('   Status: ${response.statusCode}');
-    print('   Success: ${response.isSuccessful}');
+    await LoggerService.instance.debug('Response received:');
+    await LoggerService.instance.debug('Status: ${response.statusCode}');
+    await LoggerService.instance.debug('Success: ${response.isSuccessful}');
     if (!response.isSuccessful) {
-      print('   Error: ${response.error}');
-      print('   Body: ${response.body}');
+      await LoggerService.instance.warning('Error: ${response.error}');
+      await LoggerService.instance.debug('Body: ${response.body}');
     }
 
     return response;

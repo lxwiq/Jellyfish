@@ -305,17 +305,17 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
   }
 
   Widget _buildSettingsMenu() {
-    print('🎛️ _buildSettingsMenu appelé');
-    print('   playbackInfo disponible: ${widget.playbackInfo != null}');
+    debugPrint('🎛️ _buildSettingsMenu appelé');
+    debugPrint('   playbackInfo disponible: ${widget.playbackInfo != null}');
     if (widget.playbackInfo != null) {
       final mediaSources = widget.playbackInfo!.mediaSources;
       if (mediaSources != null && mediaSources.isNotEmpty) {
         final streams = mediaSources.first.mediaStreams;
-        print('   Nombre de streams: ${streams?.length ?? 0}');
+        debugPrint('   Nombre de streams: ${streams?.length ?? 0}');
         if (streams != null) {
-          print('   📋 Détails des streams Jellyfin:');
+          debugPrint('   📋 Détails des streams Jellyfin:');
           for (var stream in streams) {
-            print('      - Type: ${stream.type}, Index: ${stream.index}, Language: ${stream.language}, Title: ${stream.title}, DisplayTitle: ${stream.displayTitle}');
+            debugPrint('      - Type: ${stream.type}, Index: ${stream.index}, Language: ${stream.language}, Title: ${stream.title}, DisplayTitle: ${stream.displayTitle}');
           }
         }
       }
@@ -789,72 +789,20 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
     }
   }
 
-  String _getAudioTrackLabel(AudioTrack? track) {
-    if (track == null || track == AudioTrack.no()) {
-      return 'Aucune';
-    }
 
-    print('🎵 _getAudioTrackLabel appelé - track.id: ${track.id}, track.title: ${track.title}, track.language: ${track.language}');
-    print('   playbackInfo disponible: ${widget.playbackInfo != null}');
-
-    // Essayer de trouver les métadonnées Jellyfin pour cette piste
-    final jellyfinMetadata = _getJellyfinAudioMetadata(track.id);
-    if (jellyfinMetadata != null) {
-      final language = jellyfinMetadata.language;
-      final title = jellyfinMetadata.title;
-      final displayTitle = jellyfinMetadata.displayTitle;
-
-      if (displayTitle != null && displayTitle.isNotEmpty) {
-        return displayTitle;
-      } else if (title != null && title.isNotEmpty) {
-        return title;
-      } else if (language != null && language.isNotEmpty) {
-        return language;
-      }
-    }
-
-    // Fallback sur les métadonnées de media_kit
-    print('   ⚠️ Utilisation du fallback media_kit');
-    return track.title ?? track.language ?? 'Piste ${track.id}';
-  }
-
-  String _getSubtitleTrackLabel(SubtitleTrack? track) {
-    if (track == null || track == SubtitleTrack.no()) {
-      return 'Désactivés';
-    }
-
-    // Essayer de trouver les métadonnées Jellyfin pour cette piste
-    final jellyfinMetadata = _getJellyfinSubtitleMetadata(track.id);
-    if (jellyfinMetadata != null) {
-      final language = jellyfinMetadata.language;
-      final title = jellyfinMetadata.title;
-      final displayTitle = jellyfinMetadata.displayTitle;
-
-      if (displayTitle != null && displayTitle.isNotEmpty) {
-        return displayTitle;
-      } else if (title != null && title.isNotEmpty) {
-        return title;
-      } else if (language != null && language.isNotEmpty) {
-        return language;
-      }
-    }
-
-    // Fallback sur les métadonnées de media_kit
-    return track.title ?? track.language ?? 'Sous-titre ${track.id}';
-  }
 
   /// Change la piste audio en utilisant setAudioTrack de media_kit (sans recharger)
   Future<void> _changeAudioTrack(MediaStream audioStream) async {
     try {
-      print('🎵 Changement de piste audio vers index: ${audioStream.index}');
+      debugPrint('🎵 Changement de piste audio vers index: ${audioStream.index}');
 
       // Récupérer les pistes audio disponibles depuis media_kit
       final tracks = widget.state.widget.controller.player.state.tracks;
       final audioTracks = tracks.audio;
 
-      print('   📋 Pistes audio disponibles dans media_kit: ${audioTracks.length}');
+      debugPrint('   📋 Pistes audio disponibles dans media_kit: ${audioTracks.length}');
       for (var track in audioTracks) {
-        print('      - ID: ${track.id}, Title: ${track.title}, Language: ${track.language}');
+        debugPrint('      - ID: ${track.id}, Title: ${track.title}, Language: ${track.language}');
       }
 
       // Trouver la piste correspondante dans media_kit
@@ -869,10 +817,10 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
             (track) => track.id == targetIndex.toString(),
             orElse: () => throw Exception('Not found by direct index'),
           );
-          print('   ✅ Piste trouvée par correspondance directe: ${targetTrack.id} (Jellyfin: $targetIndex)');
+          debugPrint('   ✅ Piste trouvée par correspondance directe: ${targetTrack.id} (Jellyfin: $targetIndex)');
         }
       } catch (e) {
-        print('   ⚠️ Correspondance directe échouée: $e');
+        debugPrint('   ⚠️ Correspondance directe échouée: $e');
         // Si la correspondance directe échoue, essayer index - 1
         try {
           final targetIndex = audioStream.index;
@@ -881,10 +829,10 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
               (track) => track.id == (targetIndex - 1).toString(),
               orElse: () => throw Exception('Not found by index-1'),
             );
-            print('   ✅ Piste trouvée par index-1: ${targetTrack.id} (Jellyfin: $targetIndex)');
+            debugPrint('   ✅ Piste trouvée par index-1: ${targetTrack.id} (Jellyfin: $targetIndex)');
           }
         } catch (e2) {
-          print('   ⚠️ Correspondance index-1 échouée: $e2');
+          debugPrint('   ⚠️ Correspondance index-1 échouée: $e2');
         }
       }
 
@@ -897,9 +845,9 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
               (track) => track.language?.toLowerCase() == targetLanguage.toLowerCase(),
               orElse: () => throw Exception('Not found by language'),
             );
-            print('   ✅ Piste trouvée par langue: ${targetTrack.id} (${targetLanguage})');
+            debugPrint('   ✅ Piste trouvée par langue: ${targetTrack.id} ($targetLanguage)');
           } catch (e2) {
-            print('   ⚠️ Piste non trouvée par langue: $targetLanguage');
+            debugPrint('   ⚠️ Piste non trouvée par langue: $targetLanguage');
           }
         }
       }
@@ -912,7 +860,7 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
           final relativeIndex = (targetIndex - 1).clamp(0, audioTracks.length - 1);
           if (relativeIndex < audioTracks.length) {
             targetTrack = audioTracks[relativeIndex];
-            print('   ⚠️ Utilisation de l\'index relatif: ${targetTrack.id} (position $relativeIndex)');
+            debugPrint('   ⚠️ Utilisation de l\'index relatif: ${targetTrack.id} (position $relativeIndex)');
           }
         }
       }
@@ -920,15 +868,15 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
       if (targetTrack != null) {
         // Changer la piste audio sans recharger la vidéo
         await widget.state.widget.controller.player.setAudioTrack(targetTrack);
-        print('✅ Changement de piste audio terminé vers: ${targetTrack.id}');
+        debugPrint('✅ Changement de piste audio terminé vers: ${targetTrack.id}');
       } else {
-        print('❌ Aucune piste audio trouvée - fallback vers rechargement');
+        debugPrint('❌ Aucune piste audio trouvée - fallback vers rechargement');
         // Fallback: recharger la vidéo si setAudioTrack ne fonctionne pas
         await _changeAudioTrackFallback(audioStream);
       }
 
     } catch (e) {
-      print('❌ Erreur lors du changement de piste audio: $e');
+      debugPrint('❌ Erreur lors du changement de piste audio: $e');
       // Fallback en cas d'erreur
       await _changeAudioTrackFallback(audioStream);
     }
@@ -937,18 +885,18 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
   /// Fallback: Change la piste audio en rechargeant la vidéo (méthode de secours)
   Future<void> _changeAudioTrackFallback(MediaStream audioStream) async {
     try {
-      print('🔄 Fallback: rechargement de la vidéo pour changement audio');
+      debugPrint('🔄 Fallback: rechargement de la vidéo pour changement audio');
 
       // Sauvegarder l'état actuel
       final currentPosition = widget.state.widget.controller.player.state.position;
       final isPlaying = widget.state.widget.controller.player.state.playing;
 
-      print('   📍 Position actuelle: ${currentPosition.inSeconds}s');
+      debugPrint('   📍 Position actuelle: ${currentPosition.inSeconds}s');
 
       // Obtenir l'itemId depuis le playbackInfo
       final itemId = widget.playbackInfo?.mediaSources?.first.id;
       if (itemId == null) {
-        print('❌ Impossible de récupérer l\'itemId');
+        debugPrint('❌ Impossible de récupérer l\'itemId');
         return;
       }
 
@@ -961,11 +909,11 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
       );
 
       if (newStreamUrl == null) {
-        print('❌ Impossible de générer la nouvelle URL de streaming');
+        debugPrint('❌ Impossible de générer la nouvelle URL de streaming');
         return;
       }
 
-      print('🔄 Nouvelle URL: $newStreamUrl');
+      debugPrint('🔄 Nouvelle URL: $newStreamUrl');
 
       // Recharger la vidéo
       await widget.state.widget.controller.player.pause();
@@ -989,10 +937,10 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
         await widget.state.widget.controller.player.play();
       }
 
-      print('✅ Fallback terminé');
+      debugPrint('✅ Fallback terminé');
 
     } catch (e) {
-      print('❌ Erreur lors du fallback: $e');
+      debugPrint('❌ Erreur lors du fallback: $e');
     }
   }
 
@@ -1001,21 +949,21 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
     try {
       if (subtitleStream == null) {
         // Désactiver les sous-titres
-        print('💬 Désactivation des sous-titres');
+        debugPrint('💬 Désactivation des sous-titres');
         await widget.state.widget.controller.player.setSubtitleTrack(SubtitleTrack.no());
-        print('✅ Sous-titres désactivés');
+        debugPrint('✅ Sous-titres désactivés');
         return;
       }
 
-      print('💬 Changement de sous-titre vers index: ${subtitleStream.index}');
+      debugPrint('💬 Changement de sous-titre vers index: ${subtitleStream.index}');
 
       // Récupérer les pistes de sous-titres disponibles depuis media_kit
       final tracks = widget.state.widget.controller.player.state.tracks;
       final subtitleTracks = tracks.subtitle;
 
-      print('   📋 Pistes de sous-titres disponibles dans media_kit: ${subtitleTracks.length}');
+      debugPrint('   📋 Pistes de sous-titres disponibles dans media_kit: ${subtitleTracks.length}');
       for (var track in subtitleTracks) {
-        print('      - ID: ${track.id}, Title: ${track.title}, Language: ${track.language}');
+        debugPrint('      - ID: ${track.id}, Title: ${track.title}, Language: ${track.language}');
       }
 
       // Nouvelle approche: utiliser directement l'index dans la liste des pistes media_kit
@@ -1029,9 +977,9 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
             (track) => track.language?.toLowerCase() == targetLanguage.toLowerCase(),
             orElse: () => throw Exception('Not found by language'),
           );
-          print('   ✅ Piste trouvée par langue: ${targetTrack.id} (${targetLanguage})');
+          debugPrint('   ✅ Piste trouvée par langue: ${targetTrack.id} ($targetLanguage)');
         } catch (e) {
-          print('   ⚠️ Piste non trouvée par langue: $targetLanguage');
+          debugPrint('   ⚠️ Piste non trouvée par langue: $targetLanguage');
         }
       }
 
@@ -1053,7 +1001,7 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
 
               if (currentIndex < realTracks.length) {
                 targetTrack = realTracks[currentIndex];
-                print('   ✅ Piste trouvée par position: ${targetTrack.id} (position $currentIndex)');
+                debugPrint('   ✅ Piste trouvée par position: ${targetTrack.id} (position $currentIndex)');
               }
             }
           }
@@ -1068,111 +1016,23 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
 
         if (realTracks.isNotEmpty) {
           targetTrack = realTracks.first;
-          print('   ⚠️ Utilisation de la première piste réelle disponible: ${targetTrack.id}');
+          debugPrint('   ⚠️ Utilisation de la première piste réelle disponible: ${targetTrack.id}');
         }
       }
 
       if (targetTrack != null) {
         // Changer la piste de sous-titres
         await widget.state.widget.controller.player.setSubtitleTrack(targetTrack);
-        print('✅ Changement de sous-titre terminé vers: ${targetTrack.id}');
+        debugPrint('✅ Changement de sous-titre terminé vers: ${targetTrack.id}');
       } else {
-        print('❌ Aucune piste de sous-titres trouvée');
+        debugPrint('❌ Aucune piste de sous-titres trouvée');
       }
 
     } catch (e) {
-      print('❌ Erreur lors du changement de sous-titre: $e');
+      debugPrint('❌ Erreur lors du changement de sous-titre: $e');
     }
   }
 
-  /// Récupère les métadonnées Jellyfin pour une piste audio
-  MediaStream? _getJellyfinAudioMetadata(String trackId) {
-    if (widget.playbackInfo == null) {
-      print('⚠️ Pas de playbackInfo disponible');
-      return null;
-    }
-
-    final mediaSources = widget.playbackInfo!.mediaSources;
-    if (mediaSources == null || mediaSources.isEmpty) {
-      print('⚠️ Pas de mediaSources disponibles');
-      return null;
-    }
-
-    final mediaStreams = mediaSources.first.mediaStreams;
-    if (mediaStreams == null) {
-      print('⚠️ Pas de mediaStreams disponibles');
-      return null;
-    }
-
-    print('🔍 Recherche piste audio - trackId: $trackId');
-
-    // Lister toutes les pistes audio disponibles
-    final audioStreams = mediaStreams.where((s) => s.type == MediaStreamType.audio).toList();
-    print('   📋 ${audioStreams.length} pistes audio Jellyfin:');
-    for (var stream in audioStreams) {
-      print('      - Index: ${stream.index}, Language: ${stream.language}, Title: ${stream.title}, DisplayTitle: ${stream.displayTitle}');
-    }
-
-    // Chercher la piste audio correspondante par index
-    // L'ID de media_kit correspond généralement à l'index du stream dans le fichier
-    try {
-      final index = int.parse(trackId);
-      final match = mediaStreams.firstWhere(
-        (stream) => stream.type == MediaStreamType.audio && stream.index == index,
-        orElse: () => throw Exception('Not found'),
-      );
-      print('   ✅ Correspondance trouvée: ${match.displayTitle ?? match.title ?? match.language}');
-      return match;
-    } catch (e) {
-      print('   ⚠️ Pas de correspondance exacte, utilisation de la première piste audio');
-      // Fallback: retourner la première piste audio si pas de correspondance exacte
-      return audioStreams.isNotEmpty ? audioStreams.first : null;
-    }
-  }
-
-  /// Récupère les métadonnées Jellyfin pour une piste de sous-titres
-  MediaStream? _getJellyfinSubtitleMetadata(String trackId) {
-    if (widget.playbackInfo == null) {
-      print('⚠️ Pas de playbackInfo disponible');
-      return null;
-    }
-
-    final mediaSources = widget.playbackInfo!.mediaSources;
-    if (mediaSources == null || mediaSources.isEmpty) {
-      print('⚠️ Pas de mediaSources disponibles');
-      return null;
-    }
-
-    final mediaStreams = mediaSources.first.mediaStreams;
-    if (mediaStreams == null) {
-      print('⚠️ Pas de mediaStreams disponibles');
-      return null;
-    }
-
-    print('🔍 Recherche sous-titre - trackId: $trackId');
-
-    // Lister tous les sous-titres disponibles
-    final subtitleStreams = mediaStreams.where((s) => s.type == MediaStreamType.subtitle).toList();
-    print('   📋 ${subtitleStreams.length} sous-titres Jellyfin:');
-    for (var stream in subtitleStreams) {
-      print('      - Index: ${stream.index}, Language: ${stream.language}, Title: ${stream.title}, DisplayTitle: ${stream.displayTitle}');
-    }
-
-    // Chercher le sous-titre correspondant par index
-    try {
-      final index = int.parse(trackId);
-      final match = mediaStreams.firstWhere(
-        (stream) => stream.type == MediaStreamType.subtitle && stream.index == index,
-        orElse: () => throw Exception('Not found'),
-      );
-      print('   ✅ Correspondance trouvée: ${match.displayTitle ?? match.title ?? match.language}');
-      return match;
-    } catch (e) {
-      print('   ⚠️ Pas de correspondance exacte, utilisation du premier sous-titre');
-      // Fallback: retourner le premier sous-titre si pas de correspondance exacte
-      return subtitleStreams.isNotEmpty ? subtitleStreams.first : null;
-    }
-  }
 
   String _getFitLabel(BoxFit fit) {
     switch (fit) {

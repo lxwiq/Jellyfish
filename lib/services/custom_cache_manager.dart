@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:http/io_client.dart';
+
 
 /// Cache manager personnalisé pour les images Jellyfin
 /// Utilise un client HTTP qui accepte les certificats SSL auto-signés
@@ -36,9 +39,9 @@ class CustomHttpFileService extends HttpFileService {
     // Configuration pour accepter les certificats auto-signés
     // Même configuration que CustomHttpClient
     ioClient.badCertificateCallback = (X509Certificate cert, String host, int port) {
-      print('⚠️ [Image Cache] Certificat SSL non vérifié pour $host:$port');
-      print('   Issuer: ${cert.issuer}');
-      print('   Subject: ${cert.subject}');
+      LoggerService.instance.warning('[Image Cache] Certificat SSL non verifie pour $host:$port');
+      LoggerService.instance.info('Issuer: ${cert.issuer}');
+      LoggerService.instance.info('Subject: ${cert.subject}');
       return true; // Accepter le certificat
     };
 

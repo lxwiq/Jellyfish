@@ -13,6 +13,11 @@ import '../../services/native_update_service.dart';
 import '../../services/custom_cache_manager.dart';
 import '../../services/logger_service.dart';
 import '../../models/download_status.dart';
+import '../../models/user.dart';
+
+import '../../models/app_settings.dart';
+import '../../services/storage_service.dart';
+
 import '../onboarding_screen.dart';
 import 'widgets/setting_section.dart';
 import 'widgets/setting_tile.dart';
@@ -77,31 +82,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           children: [
             // Section Compte
             _buildAccountSection(authState, storageService),
-            
+
             // Section Serveurs
             _buildServersSection(storageService, settings),
-            
+
             // Section Lecture Vidéo
             _buildVideoSection(settings),
-            
+
             // Section Téléchargements
             _buildDownloadsSection(settings),
-            
+
             // Section Stockage & Cache
             _buildStorageSection(downloadStats),
-            
+
             // Section Notifications
             _buildNotificationsSection(settings),
-            
+
             // Section Interface
             _buildInterfaceSection(settings),
-            
+
             // Section Mises à jour
             _buildUpdatesSection(settings),
-            
+
             // Section Avancé
             _buildAdvancedSection(storageService),
-            
+
             const SizedBox(height: 32),
           ],
         ),
@@ -145,7 +150,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION COMPTE ==========
-  Widget _buildAccountSection(authState, storageService) {
+  Widget _buildAccountSection(AuthState authState, StorageService storageService) {
     return SettingSection(
       title: 'Compte',
       icon: IconsaxPlusLinear.user,
@@ -180,7 +185,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION SERVEURS ==========
-  Widget _buildServersSection(storageService, settings) {
+  Widget _buildServersSection(StorageService storageService, AppSettings settings) {
     final serverUrl = storageService.getServerUrl();
     final jellyseerrUrl = storageService.getJellyseerrServerUrl();
     final deviceId = storageService.getOrCreateDeviceId();
@@ -238,7 +243,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION LECTURE VIDÉO ==========
-  Widget _buildVideoSection(settings) {
+  Widget _buildVideoSection(AppSettings settings) {
     return SettingSection(
       title: 'Lecture Vidéo',
       icon: IconsaxPlusLinear.video_play,
@@ -329,7 +334,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION TÉLÉCHARGEMENTS ==========
-  Widget _buildDownloadsSection(settings) {
+  Widget _buildDownloadsSection(AppSettings settings) {
     return SettingSection(
       title: 'Téléchargements',
       icon: IconsaxPlusLinear.document_download,
@@ -486,7 +491,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION NOTIFICATIONS ==========
-  Widget _buildNotificationsSection(settings) {
+  Widget _buildNotificationsSection(AppSettings settings) {
     return SettingSection(
       title: 'Notifications',
       icon: IconsaxPlusLinear.notification,
@@ -553,7 +558,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION INTERFACE ==========
-  Widget _buildInterfaceSection(settings) {
+  Widget _buildInterfaceSection(AppSettings settings) {
     return SettingSection(
       title: 'Interface',
       icon: IconsaxPlusLinear.brush,
@@ -593,7 +598,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION MISES À JOUR ==========
-  Widget _buildUpdatesSection(settings) {
+  Widget _buildUpdatesSection(AppSettings settings) {
     return SettingSection(
       title: 'Mises à jour',
       icon: IconsaxPlusLinear.refresh,
@@ -637,7 +642,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   // ========== SECTION AVANCÉ ==========
-  Widget _buildAdvancedSection(storageService) {
+  Widget _buildAdvancedSection(StorageService storageService) {
     final deviceId = storageService.getOrCreateDeviceId();
 
     return SettingSection(
@@ -1043,7 +1048,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       } else if (serverType == 'Jellyseerr') {
         await storageService.saveJellyseerrServerUrl(result);
       }
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('URL du serveur $serverType mise à jour'),
@@ -1054,7 +1059,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _showQualityDialog(settings) async {
+  Future<void> _showQualityDialog(AppSettings settings) async {
     final qualities = [
       {'value': 'auto', 'label': 'Auto'},
       {'value': '4k_40', 'label': '4K (40 Mbps)'},
@@ -1102,7 +1107,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _showDownloadQualityDialog(settings) async {
+  Future<void> _showDownloadQualityDialog(AppSettings settings) async {
     final qualities = DownloadQuality.values;
 
     final result = await showDialog<DownloadQuality>(
@@ -1145,7 +1150,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _showAudioLanguageDialog(settings) async {
+  Future<void> _showAudioLanguageDialog(AppSettings settings) async {
     // Langues courantes pour l'audio
     final languages = [
       {'code': null, 'label': 'Défaut du serveur'},
@@ -1184,7 +1189,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: isSelected
                     ? const Icon(IconsaxPlusLinear.tick_circle, color: AppColors.jellyfinPurple)
                     : null,
-                onTap: () => Navigator.of(context).pop(lang['code'] as String?),
+                onTap: () => Navigator.of(context).pop(lang['code']),
               );
             }).toList(),
           ),
@@ -1198,7 +1203,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _showSubtitleLanguageDialog(settings) async {
+  Future<void> _showSubtitleLanguageDialog(AppSettings settings) async {
     // Langues courantes pour les sous-titres
     final languages = [
       {'code': null, 'label': 'Défaut du serveur'},
@@ -1237,7 +1242,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 trailing: isSelected
                     ? const Icon(IconsaxPlusLinear.tick_circle, color: AppColors.jellyfinPurple)
                     : null,
-                onTap: () => Navigator.of(context).pop(lang['code'] as String?),
+                onTap: () => Navigator.of(context).pop(lang['code']),
               );
             }).toList(),
           ),

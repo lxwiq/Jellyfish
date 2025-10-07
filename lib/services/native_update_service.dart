@@ -1,12 +1,13 @@
 import 'dart:io';
+
+import 'package:jellyfish/services/logger_service.dart';
+
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/github_release.dart';
-import 'logger_service.dart';
 import 'permission_service.dart';
 
 /// Service pour gérer les mises à jour natives via GitHub Releases
@@ -17,7 +18,7 @@ class NativeUpdateService {
 
   static const String _githubApiUrl =
       'https://api.github.com/repos/lxwiq/Jellyfish/releases/latest';
-  
+
   static const String _keyLastNativeUpdateCheck = 'last_native_update_check';
   static const String _keySkippedVersion = 'skipped_update_version';
 
@@ -276,7 +277,7 @@ class NativeUpdateService {
 
       return newParts.length > currentParts.length;
     } catch (e) {
-      print('❌ Erreur lors de la comparaison de versions: $e');
+      LoggerService.instance.error('Erreur lors de la comparaison de versions', error: e);
       return false;
     }
   }
@@ -285,7 +286,7 @@ class NativeUpdateService {
   Future<void> skipVersion(String version) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keySkippedVersion, version);
-    print('⏭️  Version $version ignorée');
+    await LoggerService.instance.info('Version $version ignoree');
   }
 
   /// Récupère la version ignorée

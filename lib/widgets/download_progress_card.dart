@@ -460,36 +460,6 @@ class DownloadProgressCard extends ConsumerWidget {
     );
   }
 
-  /// Affiche les options
-  void _showOptions(BuildContext context, WidgetRef ref, DownloadedItem currentItem) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.play_arrow),
-              title: const Text('Play Offline'),
-              onTap: () {
-                Navigator.of(context).pop();
-                // TODO: Implémenter la lecture hors ligne
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text('Delete'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _deleteDownload(context, ref, currentItem);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// Annule le téléchargement
   Future<void> _cancelDownload(BuildContext context, WidgetRef ref, DownloadedItem currentItem) async {
     final service = ref.read(offlineDownloadServiceProvider);
@@ -630,10 +600,10 @@ class _OfflineVideoPlayerScreenState extends State<_OfflineVideoPlayerScreen> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                       Colors.transparent,
                       Colors.transparent,
-                      Colors.black.withOpacity(0.7),
+                      Colors.black.withValues(alpha: 0.7),
                     ],
                     stops: const [0.0, 0.3, 0.7, 1.0],
                   ),
@@ -726,7 +696,7 @@ class _OfflineVideoPlayerScreenState extends State<_OfflineVideoPlayerScreen> {
                                       min: 0,
                                       max: duration.inMilliseconds.toDouble(),
                                       activeColor: AppColors.jellyfinPurple,
-                                      inactiveColor: Colors.white.withOpacity(0.3),
+                                      inactiveColor: Colors.white.withValues(alpha: 0.3),
                                       onChanged: (value) {
                                         widget.player.seek(Duration(milliseconds: value.toInt()));
                                       },

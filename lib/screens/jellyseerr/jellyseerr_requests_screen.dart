@@ -416,7 +416,7 @@ class _JellyseerrRequestsScreenState
                       ),
                     );
 
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Requête créée avec succès'),
@@ -429,7 +429,7 @@ class _JellyseerrRequestsScreenState
                   ref.invalidate(jellyseerrRequestsProvider);
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Erreur: $e'),

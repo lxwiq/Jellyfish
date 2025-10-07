@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+
 import '../models/user.dart';
 import '../services/storage_service.dart';
 import '../services/jellyfin_service.dart';
@@ -23,10 +25,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
   /// Connexion utilisateur avec l'API Jellyfin
   Future<void> login(String username, String password, String serverUrl) async {
-    print('\n🚀 ========== DÉBUT LOGIN ==========');
-    print('👤 Username: $username');
-    print('🔒 Password: ${password.replaceAll(RegExp(r'.'), '*')} (${password.length} caractères)');
-    print('🌐 Server URL: $serverUrl');
+    debugPrint('\n🚀 ========== DÉBUT LOGIN ==========');
+    debugPrint('👤 Username: $username');
+    debugPrint('🔒 Password: ${password.replaceAll(RegExp(r'.'), '*')} (${password.length} caractères)');
+    debugPrint('🌐 Server URL: $serverUrl');
 
     state = AuthState.loading();
 
@@ -34,37 +36,37 @@ class AuthNotifier extends Notifier<AuthState> {
       // Récupérer ou créer le DeviceId unique
       final deviceId = _storageService.getOrCreateDeviceId();
 
-      print('\n📡 Initialisation du client API...');
+      debugPrint('\n📡 Initialisation du client API...');
       // Initialiser le client API avec l'URL du serveur et le deviceId
       _jellyfinService.initializeClient(serverUrl, deviceId: deviceId);
-      print('✅ Client API initialisé');
+      debugPrint('✅ Client API initialisé');
 
-      print('\n🔐 Tentative d\'authentification...');
+      debugPrint('\n🔐 Tentative d\'authentification...');
       // Authentification avec l'API Jellyfin
       final (user, token) = await _jellyfinService.authenticate(username, password);
-      print('✅ Authentification réussie !');
-      print('   User ID: ${user.id}');
-      print('   User Name: ${user.name}');
-      print('   Token: ${token.substring(0, 10)}...');
+      debugPrint('✅ Authentification réussie !');
+      debugPrint('   User ID: ${user.id}');
+      debugPrint('   User Name: ${user.name}');
+      debugPrint('   Token: ${token.substring(0, 10)}...');
 
-      print('\n💾 Sauvegarde des données...');
+      debugPrint('\n💾 Sauvegarde des données...');
       // Sauvegarder les données
       await _storageService.saveServerUrl(serverUrl);
-      print('   ✓ Server URL sauvegardé');
+      debugPrint('   ✓ Server URL sauvegardé');
       await _storageService.saveUser(user);
-      print('   ✓ User sauvegardé');
+      debugPrint('   ✓ User sauvegardé');
       await _storageService.saveToken(token);
-      print('   ✓ Token sauvegardé');
+      debugPrint('   ✓ Token sauvegardé');
 
       // Mettre à jour l'état
       state = AuthState.authenticated(user, token);
-      print('\n✅ ========== LOGIN RÉUSSI ==========\n');
+      debugPrint('\n✅ ========== LOGIN RÉUSSI ==========\n');
     } catch (e, stackTrace) {
-      print('\n❌ ========== ERREUR LOGIN ==========');
-      print('❌ Erreur: $e');
-      print('📚 Stack trace:');
-      print(stackTrace);
-      print('❌ ====================================\n');
+      debugPrint('\n❌ ========== ERREUR LOGIN ==========');
+      debugPrint('❌ Erreur: $e');
+      debugPrint('📚 Stack trace:');
+      debugPrint(stackTrace.toString());
+      debugPrint('❌ ====================================\n');
 
       state = AuthState.unauthenticated('Erreur de connexion: ${e.toString()}');
       rethrow;

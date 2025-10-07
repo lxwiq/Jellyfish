@@ -105,7 +105,7 @@ class _CastRemoteScreenState extends ConsumerState<CastRemoteScreen> {
         isPaused: !isPlaying,
       );
     } catch (e) {
-      print('Erreur lors du reporting de progression: $e');
+      debugPrint('Erreur lors du reporting de progression: $e');
     }
   }
 
@@ -198,9 +198,8 @@ class _CastRemoteScreenState extends ConsumerState<CastRemoteScreen> {
                 onPressed: () async {
                   final castService = ref.read(castServiceProvider);
                   await castService.disconnect();
-                  if (mounted) {
-                    Navigator.of(context).pop();
-                  }
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
                 },
               ),
             ],

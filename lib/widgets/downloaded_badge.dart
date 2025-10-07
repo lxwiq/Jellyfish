@@ -26,7 +26,7 @@ class DownloadedBadge extends ConsumerWidget {
         return Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.9),
+            color: Colors.green.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Icon(

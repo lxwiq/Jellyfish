@@ -68,7 +68,7 @@ class ActiveDownloadsModal extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.jellyfinPurple.withOpacity(0.2),
+              color: AppColors.jellyfinPurple.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -104,7 +104,7 @@ class ActiveDownloadsModal extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.text1.withOpacity(0.1),
+              color: AppColors.text1.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -146,7 +146,7 @@ class ActiveDownloadsModal extends ConsumerWidget {
         color: AppColors.background3,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.text1.withOpacity(0.1),
+          color: AppColors.text1.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -166,7 +166,7 @@ class ActiveDownloadsModal extends ConsumerWidget {
               width: 60,
               height: 90,
               decoration: BoxDecoration(
-                color: AppColors.text1.withOpacity(0.1),
+                color: AppColors.text1.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -202,7 +202,7 @@ class ActiveDownloadsModal extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: AppColors.text1.withOpacity(0.2),
+                    backgroundColor: AppColors.text1.withValues(alpha: 0.2),
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       AppColors.jellyfinPurple,
                     ),
