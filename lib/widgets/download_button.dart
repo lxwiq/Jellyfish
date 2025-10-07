@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../jellyfin/jellyfin_open_api.swagger.dart';
 import '../models/download_status.dart';
 import '../providers/offline_download_provider.dart';
+import '../providers/services_provider.dart';
 
 /// Bouton de téléchargement pour un item Jellyfin
 class DownloadButton extends ConsumerWidget {
@@ -207,6 +208,24 @@ class DownloadButton extends ConsumerWidget {
     DownloadQuality quality,
   ) async {
     try {
+      // Vérifier les permissions avant de démarrer le téléchargement
+      final permissionService = ref.read(permissionServiceProvider);
+      final hasPermissions = await permissionService.requestDownloadPermissions();
+
+      if (!hasPermissions && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Permissions required to download content'),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(
+              label: 'Settings',
+              onPressed: () => permissionService.openAppSettings(),
+            ),
+          ),
+        );
+        return;
+      }
+
       final service = ref.read(offlineDownloadServiceProvider);
       await service.downloadItem(item, quality);
 

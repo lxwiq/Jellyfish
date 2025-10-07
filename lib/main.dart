@@ -8,6 +8,7 @@ import 'theme/material_theme.dart';
 import 'screens/splash_screen.dart';
 import 'providers/services_provider.dart';
 import 'services/logger_service.dart';
+import 'services/permission_service.dart';
 
 
 void main() async {
@@ -47,6 +48,9 @@ void main() async {
 
   // Initialisation de SharedPreferences
   final sharedPreferences = await SharedPreferences.getInstance();
+
+  // Demander les permissions nécessaires
+  await PermissionService.instance.requestInitialPermissions();
 
   LoggerService.instance.info('Application initialisée avec succès');
 

@@ -121,30 +121,43 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
   /// Construit l'en-tête des statistiques
   Widget _buildStatsHeader(DownloadStats stats) {
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildStatItem(
-            icon: Icons.storage,
+            icon: Icons.storage_rounded,
             label: 'Storage',
             value: stats.formattedSize,
+            color: Colors.blue,
           ),
           _buildStatItem(
-            icon: Icons.download,
+            icon: Icons.download_rounded,
             label: 'Active',
             value: stats.activeCount.toString(),
+            color: Colors.orange,
           ),
           _buildStatItem(
-            icon: Icons.check_circle,
-            label: 'Completed',
+            icon: Icons.check_circle_rounded,
+            label: 'Done',
             value: stats.completedCount.toString(),
+            color: Colors.green,
           ),
           _buildStatItem(
-            icon: Icons.error,
+            icon: Icons.error_rounded,
             label: 'Failed',
             value: stats.failedCount.toString(),
+            color: Colors.red,
           ),
         ],
       ),
@@ -156,21 +169,33 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
     required IconData icon,
     required String label,
     required String value,
+    required Color color,
   }) {
     return Column(
       children: [
-        Icon(icon, size: 24),
-        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 24, color: color),
+        ),
+        const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 18,
+          style: TextStyle(
+            fontSize: 16,
             fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(fontSize: 12),
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[400],
+          ),
         ),
       ],
     );
@@ -301,11 +326,31 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Colors.grey),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey[800]?.withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 64, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
           Text(
             message,
-            style: const TextStyle(fontSize: 18, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Start downloading content to watch offline',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

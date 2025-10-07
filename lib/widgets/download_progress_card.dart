@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/downloaded_item.dart';
 import '../models/download_status.dart';
 import '../providers/offline_download_provider.dart';
+import 'liquid_fill_progress_image.dart';
 
 /// Card affichant la progression d'un téléchargement
 class DownloadProgressCard extends ConsumerWidget {
@@ -26,55 +27,51 @@ class DownloadProgressCard extends ConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
       child: InkWell(
         onTap: () => _showDetails(context, ref, currentItem),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
+          padding: const EdgeInsets.all(16),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  // Thumbnail
-                  _buildThumbnail(currentItem),
-                  const SizedBox(width: 12),
+              // Liquid Fill Progress Image
+              _buildLiquidFillThumbnail(currentItem),
+              const SizedBox(width: 16),
 
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Affichage spécial pour les épisodes
-                        if (currentItem.itemType == 'Episode' && currentItem.metadata != null)
-                          _buildEpisodeInfo(context, currentItem)
-                        else
-                          Text(
-                            currentItem.title,
-                            style: Theme.of(context).textTheme.titleMedium,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        const SizedBox(height: 4),
-                        _buildStatusText(context, currentItem),
-                        const SizedBox(height: 4),
-                        _buildSizeText(context, currentItem),
-                      ],
-                    ),
-                  ),
+              // Info et Actions
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Titre
+                    if (currentItem.itemType == 'Episode' && currentItem.metadata != null)
+                      _buildEpisodeInfo(context, currentItem)
+                    else
+                      Text(
+                        currentItem.title,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    const SizedBox(height: 8),
 
-                  // Actions
-                  _buildActionButton(context, ref, currentItem),
-                ],
+                    // Statut
+                    _buildStatusText(context, currentItem),
+                    const SizedBox(height: 4),
+
+                    // Taille et vitesse
+                    _buildSizeText(context, currentItem),
+                    const SizedBox(height: 12),
+
+                    // Boutons d'action
+                    _buildActionButtons(context, ref, currentItem),
+                  ],
+                ),
               ),
-
-              // Progress bar - afficher pour tous les téléchargements non terminés
-              if (currentItem.isDownloading ||
-                  currentItem.isPaused ||
-                  currentItem.isPending ||
-                  (currentItem.isFailed && currentItem.progress > 0)) ...[
-                const SizedBox(height: 12),
-                _buildProgressBar(currentItem),
-              ],
             ],
           ),
         ),
@@ -138,33 +135,45 @@ class DownloadProgressCard extends ConsumerWidget {
     );
   }
 
-  /// Construit le thumbnail
-  Widget _buildThumbnail(DownloadedItem currentItem) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: 80,
-        height: 120,
-        child: currentItem.imageUrl != null
-            ? CachedNetworkImage(
-                imageUrl: currentItem.imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[800],
-                  child: const Center(
-                    child: CircularProgressIndicator(),
+  /// Construit le thumbnail avec effet de remplissage liquide
+  Widget _buildLiquidFillThumbnail(DownloadedItem currentItem) {
+    // Pour les téléchargements terminés, afficher l'image normale en couleur
+    if (currentItem.isCompleted) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          width: 100,
+          height: 150,
+          child: currentItem.imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: currentItem.imageUrl!,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey[800],
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
                   ),
-                ),
-                errorWidget: (context, url, error) => Container(
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[800],
+                    child: const Icon(Icons.movie, size: 48),
+                  ),
+                )
+              : Container(
                   color: Colors.grey[800],
-                  child: const Icon(Icons.movie),
+                  child: const Icon(Icons.movie, size: 48),
                 ),
-              )
-            : Container(
-                color: Colors.grey[800],
-                child: const Icon(Icons.movie),
-              ),
-      ),
+        ),
+      );
+    }
+
+    // Pour les téléchargements en cours, utiliser l'effet de remplissage liquide
+    return LiquidFillProgressImage(
+      imageUrl: currentItem.imageUrl,
+      progress: currentItem.progress,
+      width: 100,
+      height: 150,
+      borderRadius: BorderRadius.circular(8),
     );
   }
 
@@ -211,87 +220,61 @@ class DownloadProgressCard extends ConsumerWidget {
     );
   }
 
-  /// Construit la barre de progression
-  Widget _buildProgressBar(DownloadedItem currentItem) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  /// Construit les boutons d'action
+  Widget _buildActionButtons(BuildContext context, WidgetRef ref, DownloadedItem currentItem) {
+    return Row(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              currentItem.progressPercentage,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+        // Bouton principal (pause/resume/play)
+        if (currentItem.isDownloading)
+          ElevatedButton.icon(
+            onPressed: () => _pauseDownload(ref, currentItem),
+            icon: const Icon(Icons.pause, size: 18),
+            label: const Text('Pause'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
             ),
-            if (currentItem.downloadSpeed != null && currentItem.isDownloading)
-              Text(
-                currentItem.downloadSpeed!,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[400],
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: TweenAnimationBuilder<double>(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            tween: Tween<double>(
-              begin: currentItem.progress,
-              end: currentItem.progress,
+          )
+        else if (currentItem.isPaused || currentItem.isFailed)
+          ElevatedButton.icon(
+            onPressed: () => _resumeDownload(ref, currentItem),
+            icon: const Icon(Icons.play_arrow, size: 18),
+            label: const Text('Resume'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
             ),
-            builder: (context, value, _) => LinearProgressIndicator(
-              value: value,
-              minHeight: 6,
-              backgroundColor: Colors.grey[800],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                currentItem.isFailed
-                    ? Colors.red
-                    : currentItem.isPaused
-                        ? Colors.orange
-                        : Theme.of(context).primaryColor,
-              ),
+          )
+        else if (currentItem.isCompleted)
+          ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Implémenter la lecture hors ligne
+            },
+            icon: const Icon(Icons.play_arrow, size: 18),
+            label: const Text('Play'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
             ),
+          ),
+
+        const SizedBox(width: 8),
+
+        // Bouton de suppression
+        OutlinedButton.icon(
+          onPressed: () => _deleteDownload(context, ref, currentItem),
+          icon: const Icon(Icons.delete, size: 18),
+          label: const Text('Delete'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red),
           ),
         ),
       ],
     );
   }
 
-  /// Construit le bouton d'action
-  Widget _buildActionButton(BuildContext context, WidgetRef ref, DownloadedItem currentItem) {
-    if (currentItem.isDownloading) {
-      return IconButton(
-        onPressed: () => _pauseDownload(ref, currentItem),
-        icon: const Icon(Icons.pause),
-        tooltip: 'Pause',
-      );
-    }
 
-    if (currentItem.isPaused || currentItem.isFailed) {
-      return IconButton(
-        onPressed: () => _resumeDownload(ref, currentItem),
-        icon: const Icon(Icons.play_arrow),
-        tooltip: 'Resume',
-      );
-    }
-
-    if (currentItem.isCompleted) {
-      return IconButton(
-        onPressed: () => _showOptions(context, ref, currentItem),
-        icon: const Icon(Icons.more_vert),
-        tooltip: 'Options',
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
 
   /// Obtient la couleur du statut
   Color _getStatusColor(DownloadedItem currentItem) {

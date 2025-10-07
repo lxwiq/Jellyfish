@@ -33,6 +33,7 @@ class OfflineNotificationService {
     final initialized = await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
+      onDidReceiveBackgroundNotificationResponse: _onNotificationTapped,
     );
 
     if (initialized == true) {
@@ -41,6 +42,9 @@ class OfflineNotificationService {
 
       // Créer le canal de notification Android
       await _createNotificationChannel();
+
+      // Demander les permissions de notification
+      await requestPermissions();
     } else {
       print('❌ Échec de l\'initialisation des notifications');
     }
@@ -55,6 +59,8 @@ class OfflineNotificationService {
       importance: Importance.low,
       playSound: false,
       enableVibration: false,
+      showBadge: true,
+      enableLights: false,
     );
 
     await _notifications
