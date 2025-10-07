@@ -13,6 +13,10 @@ class StorageService {
   static const String _keyToken = 'auth_token';
   static const String _keyDeviceId = 'device_id';
 
+  // Clés pour Jellyseerr
+  static const String _keyJellyseerrServerUrl = 'jellyseerr_server_url';
+  static const String _keyJellyseerrCookie = 'jellyseerr_cookie';
+
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage;
   final Uuid _uuid = const Uuid();
@@ -63,6 +67,8 @@ class StorageService {
     await _prefs.remove(_keyServerUrl);
     await _prefs.remove(_keyUser);
     await _secureStorage.delete(key: _keyToken);
+    await _prefs.remove(_keyJellyseerrServerUrl);
+    await _secureStorage.delete(key: _keyJellyseerrCookie);
   }
 
   /// Vérifie si l'utilisateur est connecté (a un token)
@@ -87,6 +93,41 @@ class StorageService {
     }
 
     return deviceId;
+  }
+
+  // ========== Méthodes Jellyseerr ==========
+
+  /// Sauvegarde l'URL du serveur Jellyseerr
+  Future<void> saveJellyseerrServerUrl(String serverUrl) async {
+    await _prefs.setString(_keyJellyseerrServerUrl, serverUrl);
+  }
+
+  /// Récupère l'URL du serveur Jellyseerr
+  String? getJellyseerrServerUrl() {
+    return _prefs.getString(_keyJellyseerrServerUrl);
+  }
+
+  /// Sauvegarde le cookie d'authentification Jellyseerr de manière sécurisée
+  Future<void> saveJellyseerrCookie(String cookie) async {
+    await _secureStorage.write(key: _keyJellyseerrCookie, value: cookie);
+  }
+
+  /// Récupère le cookie d'authentification Jellyseerr
+  Future<String?> getJellyseerrCookie() async {
+    return await _secureStorage.read(key: _keyJellyseerrCookie);
+  }
+
+  /// Vérifie si l'utilisateur est connecté à Jellyseerr
+  Future<bool> hasValidJellyseerrSession() async {
+    final cookie = await getJellyseerrCookie();
+    final serverUrl = getJellyseerrServerUrl();
+    return cookie != null && cookie.isNotEmpty && serverUrl != null && serverUrl.isNotEmpty;
+  }
+
+  /// Efface les données Jellyseerr (logout)
+  Future<void> clearJellyseerr() async {
+    await _prefs.remove(_keyJellyseerrServerUrl);
+    await _secureStorage.delete(key: _keyJellyseerrCookie);
   }
 }
 
