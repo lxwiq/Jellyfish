@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/github_release.dart';
+import 'logger_service.dart';
 
 /// Service pour gérer les mises à jour natives via GitHub Releases
 class NativeUpdateService {
@@ -28,16 +29,21 @@ class NativeUpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
 
-      print('🔍 Vérification des mises à jour natives...');
-      print('   Version actuelle: $currentVersion');
+      LoggerService.instance.info('🔍 Vérification des mises à jour natives...');
+      LoggerService.instance.info('   Version actuelle: $currentVersion');
+      LoggerService.instance.info('   API URL: $_githubApiUrl');
 
       // Récupérer la dernière release depuis GitHub
       final response = await _dio.get(_githubApiUrl);
 
+      LoggerService.instance.info('   Réponse API: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         final release = GitHubRelease.fromJson(response.data);
 
-        print('   Dernière version: ${release.version}');
+        LoggerService.instance.info('   Dernière version: ${release.version}');
+        LoggerService.instance.info('   Tag name: ${release.tagName}');
+        LoggerService.instance.info('   Assets: ${release.assets.length}');
 
         // Enregistrer la date de vérification
         await _saveLastUpdateCheck();
@@ -47,21 +53,26 @@ class NativeUpdateService {
           // Vérifier si cette version n'a pas été ignorée
           final skippedVersion = await getSkippedVersion();
           if (skippedVersion == release.version) {
-            print('   ⏭️  Version ignorée par l\'utilisateur');
+            LoggerService.instance.info('   ⏭️  Version ignorée par l\'utilisateur');
             return null;
           }
 
-          print('   ✅ Mise à jour disponible !');
+          LoggerService.instance.info('   ✅ Mise à jour disponible !');
           return release;
         } else {
-          print('   ✅ Application à jour');
+          LoggerService.instance.info('   ✅ Application à jour (current: $currentVersion >= latest: ${release.version})');
           return null;
         }
       }
 
+      LoggerService.instance.warning('   ⚠️  Réponse API invalide: ${response.statusCode}');
       return null;
-    } catch (e) {
-      print('❌ Erreur lors de la vérification de mise à jour native: $e');
+    } catch (e, stackTrace) {
+      LoggerService.instance.error(
+        'Erreur lors de la vérification de mise à jour native',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
@@ -72,9 +83,11 @@ class NativeUpdateService {
     Function(double)? onProgress,
   }) async {
     try {
+      LoggerService.instance.info('Début du téléchargement de la mise à jour ${release.version}');
+
       // Déterminer l'asset à télécharger selon la plateforme
       GitHubAsset? asset;
-      
+
       if (Platform.isAndroid) {
         asset = release.androidAsset;
       } else if (Platform.isWindows) {
@@ -86,15 +99,17 @@ class NativeUpdateService {
       }
 
       if (asset == null) {
-        print('❌ Aucun asset disponible pour cette plateforme');
+        LoggerService.instance.error('Aucun asset disponible pour la plateforme ${Platform.operatingSystem}');
         return false;
       }
 
-      print('📥 Téléchargement de ${asset.name} (${asset.formattedSize})...');
+      LoggerService.instance.info('📥 Téléchargement de ${asset.name} (${asset.formattedSize})...');
 
       // Créer le dossier de téléchargement
       final tempDir = await getTemporaryDirectory();
       final filePath = '${tempDir.path}/${asset.name}';
+
+      LoggerService.instance.info('Chemin de téléchargement: $filePath');
 
       // Télécharger le fichier
       await _dio.download(
@@ -108,7 +123,7 @@ class NativeUpdateService {
         },
       );
 
-      print('✅ Téléchargement terminé: $filePath');
+      LoggerService.instance.info('✅ Téléchargement terminé: $filePath');
 
       // Installer selon la plateforme
       if (Platform.isAndroid) {
@@ -122,8 +137,12 @@ class NativeUpdateService {
       }
 
       return false;
-    } catch (e) {
-      print('❌ Erreur lors du téléchargement/installation: $e');
+    } catch (e, stackTrace) {
+      LoggerService.instance.error(
+        'Erreur lors du téléchargement/installation',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }

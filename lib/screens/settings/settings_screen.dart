@@ -11,6 +11,7 @@ import '../../providers/offline_download_provider.dart';
 import '../../services/update_service.dart';
 import '../../services/native_update_service.dart';
 import '../../services/custom_cache_manager.dart';
+import '../../services/logger_service.dart';
 import '../../models/download_status.dart';
 import '../onboarding_screen.dart';
 import 'widgets/setting_section.dart';
@@ -890,6 +891,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
 
     try {
+      LoggerService.instance.info('Vérification manuelle des mises à jour');
+
       // 1. Vérifier les mises à jour Shorebird (code push)
       final updateService = UpdateService.instance;
       bool shorebirdUpdateFound = false;
@@ -914,12 +917,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       if (mounted) {
         if (release != null) {
+          LoggerService.instance.info('Affichage du dialog de mise à jour pour la version ${release.version}');
           // Afficher le dialog de mise à jour native
           showDialog(
             context: context,
             builder: (context) => NativeUpdateDialog(release: release),
           );
         } else if (!shorebirdUpdateFound) {
+          LoggerService.instance.info('Aucune mise à jour disponible');
           // Aucune mise à jour disponible
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -930,7 +935,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      LoggerService.instance.error(
+        'Erreur lors de la vérification manuelle des mises à jour',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

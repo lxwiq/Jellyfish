@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -6,10 +7,34 @@ import 'package:media_kit/media_kit.dart';
 import 'theme/material_theme.dart';
 import 'screens/splash_screen.dart';
 import 'providers/services_provider.dart';
+import 'services/logger_service.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialiser le logger en premier
+  await LoggerService.instance.initialize();
+
+  // Capturer les erreurs Flutter
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    LoggerService.instance.error(
+      'Flutter Error: ${details.exception}',
+      error: details.exception,
+      stackTrace: details.stack,
+    );
+  };
+
+  // Capturer les erreurs Dart non gérées
+  PlatformDispatcher.instance.onError = (error, stack) {
+    LoggerService.instance.error(
+      'Unhandled Error: $error',
+      error: error,
+      stackTrace: stack,
+    );
+    return true;
+  };
 
   // Initialisation de MediaKit pour la lecture vidéo
   MediaKit.ensureInitialized();
@@ -22,6 +47,8 @@ void main() async {
 
   // Initialisation de SharedPreferences
   final sharedPreferences = await SharedPreferences.getInstance();
+
+  LoggerService.instance.info('Application initialisée avec succès');
 
   runApp(
     ProviderScope(

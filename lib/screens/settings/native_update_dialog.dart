@@ -25,8 +25,16 @@ class _NativeUpdateDialogState extends State<NativeUpdateDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final publishedDate = DateTime.parse(widget.release.publishedAt);
-    final formattedDate = DateFormat('dd MMMM yyyy', 'fr_FR').format(publishedDate);
+
+    // Parser la date de publication de manière sécurisée
+    DateTime publishedDate;
+    String formattedDate;
+    try {
+      publishedDate = DateTime.parse(widget.release.publishedAt);
+      formattedDate = DateFormat('dd/MM/yyyy').format(publishedDate);
+    } catch (e) {
+      formattedDate = 'Date inconnue';
+    }
 
     return AlertDialog(
       title: Row(

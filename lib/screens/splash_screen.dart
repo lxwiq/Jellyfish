@@ -3,9 +3,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/update_service.dart';
+import '../services/native_update_service.dart';
+import '../services/logger_service.dart';
 import 'home/home_screen.dart';
 import 'onboarding_screen.dart';
+import 'settings/native_update_dialog.dart';
 
 
 /// Écran de chargement avec le logo Jellyfin
@@ -69,7 +73,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     _fadeController.forward();
 
-    // Vérifier et télécharger les mises à jour Shorebird
+    // Vérifier et télécharger les mises à jour
     await _checkForUpdates();
 
     // Vérifier le statut d'authentification
@@ -83,11 +87,80 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _checkForUpdates() async {
-    await for (final status in UpdateService.instance.checkAndDownloadUpdates()) {
+    try {
+      LoggerService.instance.info('Vérification des mises à jour au démarrage');
+
+      // Récupérer les préférences de mise à jour
+      final settingsAsync = ref.read(appSettingsProvider);
+
+      // Vérifier si les settings sont chargés
+      if (!settingsAsync.hasValue) {
+        LoggerService.instance.info('Settings non chargés, skip update check');
+        setState(() {
+          _updateStatus = 'Prêt';
+        });
+        return;
+      }
+
+      final settings = settingsAsync.value!;
+      final autoCheck = settings.updates.autoCheckOnStartup;
+
+      if (!autoCheck) {
+        LoggerService.instance.info('Vérification automatique désactivée');
+        setState(() {
+          _updateStatus = 'Prêt';
+        });
+        return;
+      }
+
+      // 1. Vérifier les mises à jour Shorebird (code push)
+      await for (final status in UpdateService.instance.checkAndDownloadUpdates()) {
+        if (mounted) {
+          setState(() {
+            _updateStatus = status.message;
+            _isDownloadingUpdate = status.isDownloading;
+          });
+        }
+      }
+
+      // 2. Vérifier les mises à jour natives (GitHub Releases)
+      setState(() {
+        _updateStatus = 'Vérification des mises à jour...';
+      });
+
+      final nativeUpdateService = NativeUpdateService.instance;
+      final release = await nativeUpdateService.checkForUpdate();
+
+      if (mounted && release != null) {
+        LoggerService.instance.info('Mise à jour native disponible: ${release.version}');
+
+        // Afficher le dialog de mise à jour après un court délai
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => NativeUpdateDialog(release: release),
+          );
+        }
+      } else {
+        LoggerService.instance.info('Aucune mise à jour native disponible');
+      }
+
+      setState(() {
+        _updateStatus = 'Prêt';
+      });
+    } catch (e, stackTrace) {
+      LoggerService.instance.error(
+        'Erreur lors de la vérification des mises à jour',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
       if (mounted) {
         setState(() {
-          _updateStatus = status.message;
-          _isDownloadingUpdate = status.isDownloading;
+          _updateStatus = 'Erreur de mise à jour';
         });
       }
     }
