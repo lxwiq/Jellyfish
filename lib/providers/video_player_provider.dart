@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services_provider.dart';
+import 'settings_provider.dart';
 import '../jellyfin/jellyfin_open_api.swagger.dart';
 
 /// Provider pour gérer l'état du lecteur vidéo
@@ -70,28 +71,88 @@ class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
     return playbackInfo;
   }
 
-  /// Obtient l'URL de streaming pour un item
+  /// Trouve l'index du stream audio correspondant à la langue préférée
+  int? _findPreferredAudioStreamIndex(PlaybackInfoResponse? playbackInfo, String? preferredLanguage) {
+    if (playbackInfo == null || preferredLanguage == null) return null;
+
+    final mediaSources = playbackInfo.mediaSources;
+    if (mediaSources == null || mediaSources.isEmpty) return null;
+
+    final mediaStreams = mediaSources.first.mediaStreams;
+    if (mediaStreams == null) return null;
+
+    // Chercher un stream audio avec la langue préférée
+    for (final stream in mediaStreams) {
+      if (stream.type == MediaStreamType.audio &&
+          stream.language?.toLowerCase() == preferredLanguage.toLowerCase()) {
+        return stream.index;
+      }
+    }
+
+    return null; // Pas de correspondance, utiliser le défaut
+  }
+
+  /// Trouve l'index du stream de sous-titres correspondant à la langue préférée
+  int? _findPreferredSubtitleStreamIndex(PlaybackInfoResponse? playbackInfo, String? preferredLanguage, bool enableSubtitles) {
+    if (!enableSubtitles || playbackInfo == null || preferredLanguage == null) return null;
+
+    final mediaSources = playbackInfo.mediaSources;
+    if (mediaSources == null || mediaSources.isEmpty) return null;
+
+    final mediaStreams = mediaSources.first.mediaStreams;
+    if (mediaStreams == null) return null;
+
+    // Chercher un stream de sous-titres avec la langue préférée
+    for (final stream in mediaStreams) {
+      if (stream.type == MediaStreamType.subtitle &&
+          stream.language?.toLowerCase() == preferredLanguage.toLowerCase()) {
+        return stream.index;
+      }
+    }
+
+    return null; // Pas de correspondance, pas de sous-titres
+  }
+
+  /// Obtient l'URL de streaming pour un item avec les préférences utilisateur
   String? getStreamUrl(String itemId, {
     String? mediaSourceId,
     int? audioStreamIndex,
     int? subtitleStreamIndex,
-    bool useHls = false, // Revenir au streaming direct par défaut
+    bool? useHls, // Si null, utilise les préférences
   }) {
     final jellyfinService = ref.read(jellyfinServiceProvider);
 
-    if (useHls) {
+    // Récupérer les préférences si useHls n'est pas spécifié
+    final settingsAsync = ref.read(appSettingsProvider);
+    final settings = settingsAsync.value;
+
+    // Déterminer si on utilise HLS
+    final shouldUseHls = useHls ?? settings?.video.useHls ?? false;
+
+    // Si les index ne sont pas spécifiés, utiliser les préférences
+    final finalAudioIndex = audioStreamIndex ??
+        _findPreferredAudioStreamIndex(state.playbackInfo, settings?.video.preferredAudioLanguage);
+
+    final finalSubtitleIndex = subtitleStreamIndex ??
+        _findPreferredSubtitleStreamIndex(
+          state.playbackInfo,
+          settings?.video.preferredSubtitleLanguage,
+          settings?.video.enableSubtitlesByDefault ?? false,
+        );
+
+    if (shouldUseHls) {
       return jellyfinService.getHlsStreamUrl(
         itemId,
         mediaSourceId: mediaSourceId,
-        audioStreamIndex: audioStreamIndex,
-        subtitleStreamIndex: subtitleStreamIndex,
+        audioStreamIndex: finalAudioIndex,
+        subtitleStreamIndex: finalSubtitleIndex,
       );
     } else {
       return jellyfinService.getVideoStreamUrl(
         itemId,
         mediaSourceId: mediaSourceId,
-        audioStreamIndex: audioStreamIndex,
-        subtitleStreamIndex: subtitleStreamIndex,
+        audioStreamIndex: finalAudioIndex,
+        subtitleStreamIndex: finalSubtitleIndex,
       );
     }
   }

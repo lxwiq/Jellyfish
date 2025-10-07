@@ -299,6 +299,15 @@ class OfflineStorageService {
     print('🧹 Téléchargements échoués/annulés nettoyés');
   }
 
+  /// Supprime tous les téléchargements
+  Future<void> deleteAllDownloads() async {
+    final items = await getAllDownloadedItems();
+    for (final item in items) {
+      await deleteDownloadedItem(item.id);
+    }
+    print('🗑️ Tous les téléchargements supprimés');
+  }
+
   /// Obtient l'espace disque disponible
   Future<int> getAvailableSpace() async {
     try {

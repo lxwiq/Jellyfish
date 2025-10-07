@@ -8,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../providers/video_player_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/services_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../jellyfin/jellyfin_open_api.swagger.dart';
 import 'widgets/custom_video_controls.dart';
 
@@ -144,8 +145,15 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     // Signaler le début de lecture
     _reportPlaybackStart();
 
-    // Créer un timer pour reporter la progression toutes les 10 secondes
-    _progressReportTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    // Récupérer l'intervalle de sauvegarde depuis les préférences
+    final settingsAsync = ref.read(appSettingsProvider);
+    final settings = settingsAsync.value;
+    final saveInterval = settings?.video.progressSaveInterval ?? 5; // 5 secondes par défaut
+
+    print('⏱️ Intervalle de sauvegarde de progression: ${saveInterval}s');
+
+    // Créer un timer pour reporter la progression selon l'intervalle configuré
+    _progressReportTimer = Timer.periodic(Duration(seconds: saveInterval), (timer) {
       _reportPlaybackProgress();
     });
   }

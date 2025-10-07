@@ -1,9 +1,0 @@
-# Dockerfile pour compiler l'application Flutter Jellyfish pour Windows
-# Utilise l'image tauu/flutter-windows-builder qui contient tous les outils nécessaires
-# pour compiler des applications Flutter desktop pour Windows
-
-FROM tauu/flutter-windows-builder:latest
-
-# L'image a déjà un WORKDIR défini à C:\src
-# Copier tout le projet dans le conteneur
-COPY . .
