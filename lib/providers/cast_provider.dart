@@ -58,6 +58,66 @@ final castDurationProvider = Provider<Duration?>((ref) {
   return castService.duration;
 });
 
+/// Provider pour le volume actuel
+final castVolumeProvider = Provider<double?>((ref) {
+  final castService = ref.watch(castServiceProvider);
+  // Forcer la mise à jour en écoutant la session
+  ref.watch(castSessionProvider);
+  return castService.getVolume();
+});
+
+/// Provider pour l'état muet
+final castMutedProvider = Provider<bool?>((ref) {
+  final castService = ref.watch(castServiceProvider);
+  // Forcer la mise à jour en écoutant la session
+  ref.watch(castSessionProvider);
+  return castService.isMuted();
+});
+
+/// Provider pour les pistes disponibles
+final castAvailableTracksProvider = Provider<List<GoogleCastMediaTrack>?>((ref) {
+  final castService = ref.watch(castServiceProvider);
+  // Forcer la mise à jour en écoutant le statut du média
+  ref.watch(castMediaStatusProvider);
+  return castService.getAvailableTracks();
+});
+
+/// Provider pour les IDs des pistes actives
+final castActiveTrackIdsProvider = Provider<List<int>?>((ref) {
+  final castService = ref.watch(castServiceProvider);
+  // Forcer la mise à jour en écoutant le statut du média
+  ref.watch(castMediaStatusProvider);
+  return castService.getActiveTrackIds();
+});
+
+/// Provider pour le nom de l'appareil connecté
+final castDeviceNameProvider = Provider<String?>((ref) {
+  final sessionAsync = ref.watch(castSessionProvider);
+  return sessionAsync.when(
+    data: (session) => session?.device?.friendlyName,
+    loading: () => null,
+    error: (_, __) => null,
+  );
+});
+
+/// Provider pour savoir si un média est chargé
+final castHasMediaProvider = Provider<bool>((ref) {
+  final castService = ref.watch(castServiceProvider);
+  // Forcer la mise à jour en écoutant le statut du média
+  ref.watch(castMediaStatusProvider);
+  return castService.hasMedia;
+});
+
+/// Provider pour savoir si le média est en buffering
+final castIsBufferingProvider = Provider<bool>((ref) {
+  final statusAsync = ref.watch(castMediaStatusProvider);
+  return statusAsync.when(
+    data: (status) => status?.playerState == CastMediaPlayerState.buffering,
+    loading: () => false,
+    error: (_, __) => false,
+  );
+});
+
 /// État pour gérer le média en cours de cast
 class CastMediaState {
   final String? itemId;
