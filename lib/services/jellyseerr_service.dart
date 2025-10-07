@@ -296,16 +296,30 @@ class JellyseerrService {
   }
 
   /// Récupère les médias trending
-  Future<SearchResponse> getTrending({int page = 1}) async {
+  Future<SearchResponse> getTrending({
+    int page = 1,
+    List<int>? genres,
+    String? sortBy,
+  }) async {
     if (_serverUrl == null || _cookie == null) {
       throw Exception('Non authentifié. Appelez authenticate() d\'abord.');
     }
 
     try {
-      final url = Uri.parse('$_serverUrl/api/v1/discover/trending')
-          .replace(queryParameters: {'page': page.toString()});
+      final queryParams = <String, String>{'page': page.toString()};
 
-      print('🔥 Récupération des médias trending (page $page)');
+      if (genres != null && genres.isNotEmpty) {
+        queryParams['with_genres'] = genres.join(',');
+      }
+
+      if (sortBy != null) {
+        queryParams['sort_by'] = sortBy;
+      }
+
+      final url = Uri.parse('$_serverUrl/api/v1/discover/trending')
+          .replace(queryParameters: queryParams);
+
+      print('🔥 Récupération des médias trending (page $page, genres: $genres)');
 
       final response = await _httpClient.get(
         url,
@@ -333,16 +347,30 @@ class JellyseerrService {
   }
 
   /// Récupère les films populaires
-  Future<SearchResponse> getPopularMovies({int page = 1}) async {
+  Future<SearchResponse> getPopularMovies({
+    int page = 1,
+    List<int>? genres,
+    String? sortBy,
+  }) async {
     if (_serverUrl == null || _cookie == null) {
       throw Exception('Non authentifié. Appelez authenticate() d\'abord.');
     }
 
     try {
-      final url = Uri.parse('$_serverUrl/api/v1/discover/movies')
-          .replace(queryParameters: {'page': page.toString()});
+      final queryParams = <String, String>{'page': page.toString()};
 
-      print('🎬 Récupération des films populaires (page $page)');
+      if (genres != null && genres.isNotEmpty) {
+        queryParams['with_genres'] = genres.join(',');
+      }
+
+      if (sortBy != null) {
+        queryParams['sort_by'] = sortBy;
+      }
+
+      final url = Uri.parse('$_serverUrl/api/v1/discover/movies')
+          .replace(queryParameters: queryParams);
+
+      print('🎬 Récupération des films populaires (page $page, genres: $genres)');
 
       final response = await _httpClient.get(
         url,
@@ -370,16 +398,30 @@ class JellyseerrService {
   }
 
   /// Récupère les séries TV populaires
-  Future<SearchResponse> getPopularTv({int page = 1}) async {
+  Future<SearchResponse> getPopularTv({
+    int page = 1,
+    List<int>? genres,
+    String? sortBy,
+  }) async {
     if (_serverUrl == null || _cookie == null) {
       throw Exception('Non authentifié. Appelez authenticate() d\'abord.');
     }
 
     try {
-      final url = Uri.parse('$_serverUrl/api/v1/discover/tv')
-          .replace(queryParameters: {'page': page.toString()});
+      final queryParams = <String, String>{'page': page.toString()};
 
-      print('📺 Récupération des séries TV populaires (page $page)');
+      if (genres != null && genres.isNotEmpty) {
+        queryParams['with_genres'] = genres.join(',');
+      }
+
+      if (sortBy != null) {
+        queryParams['sort_by'] = sortBy;
+      }
+
+      final url = Uri.parse('$_serverUrl/api/v1/discover/tv')
+          .replace(queryParameters: queryParams);
+
+      print('📺 Récupération des séries TV populaires (page $page, genres: $genres)');
 
       final response = await _httpClient.get(
         url,
@@ -402,6 +444,74 @@ class JellyseerrService {
       }
     } catch (e) {
       print('❌ Erreur lors de la récupération des séries: $e');
+      rethrow;
+    }
+  }
+
+  /// Récupère la liste des genres disponibles pour les films
+  Future<List<Genre>> getMovieGenres() async {
+    if (_serverUrl == null || _cookie == null) {
+      throw Exception('Non authentifié. Appelez authenticate() d\'abord.');
+    }
+
+    try {
+      final url = Uri.parse('$_serverUrl/api/v1/genres/movie');
+
+      print('🎭 Récupération des genres de films');
+
+      final response = await _httpClient.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': _cookie!,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List;
+        return data.map((json) => Genre.fromJson(json)).toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('Session expirée. Veuillez vous reconnecter.');
+      } else {
+        throw Exception(
+            'Erreur lors de la récupération des genres: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Erreur lors de la récupération des genres: $e');
+      rethrow;
+    }
+  }
+
+  /// Récupère la liste des genres disponibles pour les séries TV
+  Future<List<Genre>> getTvGenres() async {
+    if (_serverUrl == null || _cookie == null) {
+      throw Exception('Non authentifié. Appelez authenticate() d\'abord.');
+    }
+
+    try {
+      final url = Uri.parse('$_serverUrl/api/v1/genres/tv');
+
+      print('🎭 Récupération des genres de séries TV');
+
+      final response = await _httpClient.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cookie': _cookie!,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List;
+        return data.map((json) => Genre.fromJson(json)).toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('Session expirée. Veuillez vous reconnecter.');
+      } else {
+        throw Exception(
+            'Erreur lors de la récupération des genres: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Erreur lors de la récupération des genres: $e');
       rethrow;
     }
   }

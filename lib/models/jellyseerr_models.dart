@@ -520,4 +520,3 @@ class Credits {
 
   Map<String, dynamic> toJson() => _$CreditsToJson(this);
 }
-

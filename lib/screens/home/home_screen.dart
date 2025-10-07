@@ -139,8 +139,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 },
               ),
               IconButton(
-                icon: const Icon(IconsaxPlusLinear.video_play),
-                color: AppColors.text4,
+                icon: Image.asset(
+                  'assets/icons/jellyseerr.png',
+                  width: 24,
+                  height: 24,
+                  color: AppColors.text4,
+                ),
                 tooltip: 'Jellyseerr',
                 onPressed: () {
                   Navigator.of(context).push(

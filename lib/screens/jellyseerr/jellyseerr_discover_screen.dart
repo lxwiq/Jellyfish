@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:jellyfish/theme/app_colors.dart';
 import 'package:jellyfish/providers/jellyseerr_provider.dart';
 import 'package:jellyfish/models/jellyseerr_models.dart';
+import 'package:jellyfish/widgets/horizontal_carousel.dart';
 import 'package:jellyfish/widgets/card_constants.dart';
-import 'jellyseerr_media_detail_screen.dart';
+import 'widgets/jellyseerr_media_card.dart';
+import 'widgets/jellyseerr_section_title.dart';
+import 'jellyseerr_search_screen.dart';
 
-/// Écran de découverte de contenu Jellyseerr
+/// Écran de découverte de contenu Jellyseerr redesigné
+/// Suit les patterns de design de l'application
 class JellyseerrDiscoverScreen extends ConsumerStatefulWidget {
   const JellyseerrDiscoverScreen({super.key});
 
@@ -18,7 +24,6 @@ class _JellyseerrDiscoverScreenState
     extends ConsumerState<JellyseerrDiscoverScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  String? _searchQuery;
 
   @override
   void initState() {
@@ -34,416 +39,321 @@ class _JellyseerrDiscoverScreenState
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(jellyseerrAuthStateProvider);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900;
+    final isTablet = screenWidth >= 600 && screenWidth < 900;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Découvrir'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => _showSearchDialog(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(jellyseerrAuthStateProvider.notifier).logout();
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Tendances', icon: Icon(Icons.trending_up)),
-            Tab(text: 'Films', icon: Icon(Icons.movie)),
-            Tab(text: 'Séries', icon: Icon(Icons.tv)),
-          ],
-        ),
-      ),
-      body: _searchQuery != null
-          ? _buildSearchResults()
-          : TabBarView(
-              controller: _tabController,
+      backgroundColor: AppColors.background1,
+      body: CustomScrollView(
+        slivers: [
+          // AppBar avec design cohérent
+          SliverAppBar(
+            floating: true,
+            snap: true,
+            backgroundColor: AppColors.background2,
+            foregroundColor: AppColors.text6,
+            elevation: 0,
+            title: Row(
               children: [
-                _buildTrendingTab(),
-                _buildMoviesTab(),
-                _buildTvTab(),
+                Image.asset(
+                  'assets/icons/jellyseerr.png',
+                  width: 28,
+                  height: 28,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Jellyseerr',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text6,
+                  ),
+                ),
               ],
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  IconsaxPlusLinear.search_normal,
+                  color: AppColors.jellyfinPurple,
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const JellyseerrSearchScreen(),
+                    ),
+                  );
+                },
+              ),
+              IconButton(
+                icon: const Icon(
+                  IconsaxPlusLinear.logout,
+                  color: AppColors.text4,
+                ),
+                onPressed: () async {
+                  await ref.read(jellyseerrAuthStateProvider.notifier).logout();
+                },
+              ),
+              SizedBox(width: isDesktop ? 16 : 8),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.jellyfinPurple,
+              labelColor: AppColors.jellyfinPurple,
+              unselectedLabelColor: AppColors.text4,
+              tabs: const [
+                Tab(
+                  text: 'Tendances',
+                  icon: Icon(IconsaxPlusBold.trend_up),
+                ),
+                Tab(
+                  text: 'Films',
+                  icon: Icon(IconsaxPlusBold.video_square),
+                ),
+                Tab(
+                  text: 'Séries',
+                  icon: Icon(IconsaxPlusBold.monitor),
+                ),
+              ],
+            ),
+          ),
+
+          // Contenu des tabs
+          SliverFillRemaining(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTrendingTab(isDesktop, isTablet),
+                _buildMoviesTab(isDesktop, isTablet),
+                _buildTvTab(isDesktop, isTablet),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildTrendingTab() {
+  Widget _buildTrendingTab(bool isDesktop, bool isTablet) {
     final trendingAsync = ref.watch(jellyseerrTrendingProvider(1));
 
     return trendingAsync.when(
-      data: (response) => _buildMediaGrid(response.results),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Erreur: $error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(jellyseerrTrendingProvider),
-              child: const Text('Réessayer'),
+      data: (response) => RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(jellyseerrTrendingProvider);
+        },
+        color: AppColors.jellyfinPurple,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: isDesktop ? 32 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                JellyseerrSectionTitle(
+                  title: 'Tendances du moment',
+                  icon: IconsaxPlusBold.trend_up,
+                  isDesktop: isDesktop,
+                ),
+                const SizedBox(height: 16),
+                _buildMediaCarousel(response.results, isDesktop, isTablet),
+              ],
             ),
-          ],
+          ),
         ),
+      ),
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.jellyfinPurple,
+        ),
+      ),
+      error: (error, stack) => _buildErrorState(
+        error.toString(),
+        () => ref.invalidate(jellyseerrTrendingProvider),
+        isDesktop,
       ),
     );
   }
 
-  Widget _buildMoviesTab() {
+  Widget _buildMoviesTab(bool isDesktop, bool isTablet) {
     final moviesAsync = ref.watch(jellyseerrPopularMoviesProvider(1));
 
     return moviesAsync.when(
-      data: (response) => _buildMediaGrid(response.results),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Erreur: $error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(jellyseerrPopularMoviesProvider),
-              child: const Text('Réessayer'),
+      data: (response) => RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(jellyseerrPopularMoviesProvider);
+        },
+        color: AppColors.jellyfinPurple,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: isDesktop ? 32 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                JellyseerrSectionTitle(
+                  title: 'Films populaires',
+                  icon: IconsaxPlusBold.video_square,
+                  isDesktop: isDesktop,
+                ),
+                const SizedBox(height: 16),
+                _buildMediaCarousel(response.results, isDesktop, isTablet),
+              ],
             ),
-          ],
+          ),
         ),
+      ),
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.jellyfinPurple,
+        ),
+      ),
+      error: (error, stack) => _buildErrorState(
+        error.toString(),
+        () => ref.invalidate(jellyseerrPopularMoviesProvider),
+        isDesktop,
       ),
     );
   }
 
-  Widget _buildTvTab() {
+  Widget _buildTvTab(bool isDesktop, bool isTablet) {
     final tvAsync = ref.watch(jellyseerrPopularTvProvider(1));
 
     return tvAsync.when(
-      data: (response) => _buildMediaGrid(response.results),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Erreur: $error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => ref.invalidate(jellyseerrPopularTvProvider),
-              child: const Text('Réessayer'),
+      data: (response) => RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(jellyseerrPopularTvProvider);
+        },
+        color: AppColors.jellyfinPurple,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: isDesktop ? 32 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                JellyseerrSectionTitle(
+                  title: 'Séries populaires',
+                  icon: IconsaxPlusBold.monitor,
+                  isDesktop: isDesktop,
+                ),
+                const SizedBox(height: 16),
+                _buildMediaCarousel(response.results, isDesktop, isTablet),
+              ],
             ),
-          ],
+          ),
         ),
+      ),
+      loading: () => const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.jellyfinPurple,
+        ),
+      ),
+      error: (error, stack) => _buildErrorState(
+        error.toString(),
+        () => ref.invalidate(jellyseerrPopularTvProvider),
+        isDesktop,
       ),
     );
   }
 
-  Widget _buildMediaGrid(List<MediaSearchResult> media) {
+  Widget _buildMediaCarousel(
+    List<MediaSearchResult> media,
+    bool isDesktop,
+    bool isTablet,
+  ) {
     if (media.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inbox, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Aucun contenu disponible',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          ],
+      return Padding(
+        padding: EdgeInsets.all(isDesktop ? 32 : 16),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(
+                IconsaxPlusBold.box,
+                size: 64,
+                color: AppColors.text2,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Aucun contenu disponible',
+                style: TextStyle(
+                  fontSize: isDesktop ? 18 : 16,
+                  color: AppColors.text4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(jellyseerrTrendingProvider);
-        ref.invalidate(jellyseerrPopularMoviesProvider);
-        ref.invalidate(jellyseerrPopularTvProvider);
-      },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final screenWidth = constraints.maxWidth;
-          final isDesktop = screenWidth >= 900;
-          final isTablet = screenWidth >= 600 && screenWidth < 900;
+    final sizes = CardSizeHelper.getSizes(isDesktop, isTablet);
+    final cardHeight = sizes.posterTotalHeight;
 
-          // Calculer le nombre de colonnes en fonction de la largeur
-          int crossAxisCount;
-          double horizontalPadding;
-
-          if (isDesktop) {
-            crossAxisCount = (screenWidth / 200).floor().clamp(3, 8);
-            horizontalPadding = 32;
-          } else if (isTablet) {
-            crossAxisCount = (screenWidth / 160).floor().clamp(3, 6);
-            horizontalPadding = 16;
-          } else {
-            crossAxisCount = (screenWidth / 140).floor().clamp(2, 4);
-            horizontalPadding = 16;
-          }
-
-          // Calculer le ratio d'aspect : poster (2/3) + zone de texte (~50px)
-          // Pour éviter les overflows, on utilise un ratio qui laisse de l'espace pour le texte
-          const double textAreaHeight = 50.0;
-          final double posterHeight = 1.0 / CardConstants.posterAspectRatio; // 1.5 pour ratio 2/3
-          final double totalHeightRatio = posterHeight + (textAreaHeight / 100); // Normaliser
-          final double childAspectRatio = 1.0 / totalHeightRatio;
-
-          return GridView.builder(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: 16,
-            ),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: crossAxisCount,
-              childAspectRatio: childAspectRatio,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 16,
-            ),
-            itemCount: media.length,
-            itemBuilder: (context, index) {
-              final item = media[index];
-              return _buildMediaCard(item, 0);
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMediaCard(MediaSearchResult media, double cardWidth) {
-    final posterUrl = media.posterPath != null
-        ? 'https://image.tmdb.org/t/p/w500${media.posterPath}'
-        : null;
-
-    return GestureDetector(
-      onTap: () => _showMediaDetails(media),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Image avec ratio d'aspect fixe
-          AspectRatio(
-            aspectRatio: CardConstants.posterAspectRatio,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: posterUrl != null
-                    ? Image.network(
-                        posterUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey.shade300,
-                            child: const Center(
-                              child: Icon(Icons.movie, size: 48),
-                            ),
-                          );
-                        },
-                      )
-                    : Container(
-                        color: Colors.grey.shade300,
-                        child: const Center(
-                          child: Icon(Icons.movie, size: 48),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          // Zone de texte flexible
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  media.displayTitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 1.2,
-                  ),
-                ),
-                if (media.voteAverage != null) ...[
-                  const SizedBox(height: 2),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.star, size: 12, color: Colors.amber),
-                      const SizedBox(width: 2),
-                      Text(
-                        media.voteAverage!.toStringAsFixed(1),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResults() {
-    if (_searchQuery == null || _searchQuery!.isEmpty) {
-      return const Center(child: Text('Entrez un terme de recherche'));
-    }
-
-    final searchAsync = ref.watch(jellyseerrSearchProvider(_searchQuery!));
-
-    return searchAsync.when(
-      data: (response) {
-        if (response.results.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text('Aucun résultat trouvé'),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _searchQuery = null;
-                    });
-                  },
-                  child: const Text('Retour'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Résultats pour "$_searchQuery"',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = null;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(child: _buildMediaGrid(response.results)),
-          ],
+    return HorizontalCarousel(
+      height: cardHeight,
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
+      spacing: isDesktop ? 16 : 12,
+      children: media.map((item) {
+        return JellyseerrMediaCard(
+          media: item,
+          isDesktop: isDesktop,
+          isTablet: isTablet,
         );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Center(
+      }).toList(),
+    );
+  }
+
+  Widget _buildErrorState(
+    String error,
+    VoidCallback onRetry,
+    bool isDesktop,
+  ) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(isDesktop ? 32 : 16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.error,
+            ),
             const SizedBox(height: 16),
-            Text('Erreur: $error'),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _searchQuery = null;
-                });
-              },
-              child: const Text('Retour'),
+            Text(
+              'Une erreur est survenue',
+              style: TextStyle(
+                fontSize: isDesktop ? 20 : 18,
+                color: AppColors.text5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: isDesktop ? 14 : 13,
+                color: AppColors.text3,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Réessayer'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.jellyfinPurple,
+                foregroundColor: AppColors.text6,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _showSearchDialog(BuildContext context) {
-    final controller = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rechercher'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Titre du film ou de la série',
-            prefixIcon: Icon(Icons.search),
-          ),
-          autofocus: true,
-          onSubmitted: (value) {
-            if (value.isNotEmpty) {
-              Navigator.pop(context);
-              setState(() {
-                _searchQuery = value;
-              });
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                Navigator.pop(context);
-                setState(() {
-                  _searchQuery = controller.text;
-                });
-              }
-            },
-            child: const Text('Rechercher'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showMediaDetails(MediaSearchResult media) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => JellyseerrMediaDetailScreen(
-          mediaId: media.id,
-          mediaType: media.mediaType,
         ),
       ),
     );
