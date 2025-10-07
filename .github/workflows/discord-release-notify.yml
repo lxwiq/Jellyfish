@@ -1,0 +1,27 @@
+name: Notify Discord on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    name: Send Discord notification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Discord
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          title: "Une nouvelle version de Jellyfish est disponible 🎉"
+          description: |
+            Version `${{ github.event.release.tag_name }}` publiée.
+
+            - 📥 Téléchargements: Android (APK) et Windows (Installateur)
+            - 📝 Notes de version: disponibles sur la page de release
+            - 🔄 Mise à jour manuelle: ouvrez Paramètres → Mises à jour puis appuyez sur « Mettre à jour ».
+
+            Lien direct: [Ouvrir la release](${{ github.event.release.html_url }})
+          color: 0x00A4DC
+
