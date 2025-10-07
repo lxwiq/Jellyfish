@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -200,6 +201,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   /// Signale l'arrêt de lecture à Jellyfin
   Future<void> _reportPlaybackStopped() async {
+    // Vérifier si le widget est toujours monté avant d'utiliser ref
+    if (!mounted) return;
+
     final authState = ref.read(authStateProvider);
     final userId = authState.user?.id;
     final jellyfinService = ref.read(jellyfinServiceProvider);
@@ -254,7 +258,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     _progressReportTimer?.cancel();
 
     // Signaler l'arrêt de lecture à Jellyfin
-    _reportPlaybackStopped();
+    // Utiliser unawaited pour éviter les warnings et permettre l'exécution asynchrone
+    // La vérification mounted dans _reportPlaybackStopped() empêchera l'erreur
+    unawaited(_reportPlaybackStopped());
 
     // Restaurer l'orientation et l'UI système
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
