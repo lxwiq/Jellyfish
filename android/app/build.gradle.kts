@@ -7,17 +7,21 @@ plugins {
 
 android {
     namespace = "com.lxwiq.jellyfish"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Override Flutter default to satisfy plugins requiring API 36
+    compileSdk = 36
+    // Override Flutter default NDK to satisfy plugins requiring NDK 27
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // Use Java 17 as recommended by AGP 8.x
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        // Align Kotlin JVM target with Java 17
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
@@ -73,7 +77,14 @@ android {
         resources.excludes.add("META-INF/NOTICE.txt")
         resources.excludes.add("META-INF/notice.txt")
         resources.excludes.add("META-INF/*.kotlin_module")
-    }
+}
+}
+
+// Suppress obsolete -source/-target warnings from Java compilation
+tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+    // AGP doesn't support --release flag; use sourceCompatibility/targetCompatibility instead
+    // Suppress warnings about obsolete -source/-target options
+    options.compilerArgs.add("-Xlint:-options")
 }
 
 flutter {
