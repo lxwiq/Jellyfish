@@ -10,8 +10,10 @@ import '../../providers/video_player_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/services_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/cast_provider.dart';
 import '../../jellyfin/jellyfin_open_api.swagger.dart';
 import 'widgets/custom_video_controls.dart';
+import '../cast_remote/cast_remote_screen.dart';
 
 /// Écran de lecture vidéo avec media_kit
 class VideoPlayerScreen extends ConsumerStatefulWidget {
@@ -44,6 +46,84 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   void initState() {
     super.initState();
     _initializePlayer();
+    _listenToCastSession();
+  }
+
+  /// Écoute les changements de session de cast
+  void _listenToCastSession() {
+    // Écouter les changements de session de cast
+    ref.listenManual(castSessionProvider, (previous, next) {
+      next.whenData((session) {
+        if (session != null && mounted) {
+          // Une session de cast a été établie, naviguer vers l'écran télécommande
+          _handleCastSession();
+        }
+      });
+    });
+  }
+
+  /// Gère la transition vers le cast
+  Future<void> _handleCastSession() async {
+    try {
+      // Arrêter le lecteur local
+      await player.pause();
+
+      // Obtenir l'URL de streaming pour le cast
+      final streamUrl = ref.read(videoPlayerProvider.notifier).getStreamUrl(widget.itemId);
+      if (streamUrl == null) return;
+
+      // Obtenir les informations du média
+      final item = widget.item;
+      final title = item?.name ?? 'Vidéo';
+      final subtitle = item?.type == 'Episode'
+          ? 'S${item?.parentIndexNumber ?? 0}E${item?.indexNumber ?? 0}'
+          : null;
+
+      // Construire l'URL de l'image
+      final storageService = ref.read(storageServiceProvider);
+      final baseUrl = storageService.getServerUrl();
+      final hasPrimaryImage = item?.imageTags != null &&
+          (item!.imageTags as Map<String, dynamic>).containsKey('Primary');
+      final imageUrl = hasPrimaryImage && baseUrl != null
+          ? '$baseUrl/Items/${item.id}/Images/Primary?maxHeight=600&quality=90'
+          : null;
+
+      // Mettre à jour l'état du média dans le provider
+      ref.read(castMediaStateProvider.notifier).setMedia(
+        itemId: widget.itemId,
+        title: title,
+        subtitle: subtitle,
+        imageUrl: imageUrl,
+        item: item,
+      );
+
+      // Charger le média sur le Chromecast
+      final castService = ref.read(castServiceProvider);
+      final currentPosition = player.state.position;
+
+      final success = await castService.loadMedia(
+        url: streamUrl,
+        title: title,
+        subtitle: subtitle,
+        imageUrl: imageUrl,
+        startPosition: currentPosition,
+        contentType: 'video/mp4',
+      );
+
+      if (success && mounted) {
+        // Arrêter le reporting de progression local
+        _progressReportTimer?.cancel();
+
+        // Naviguer vers l'écran télécommande
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const CastRemoteScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Erreur lors de la transition vers le cast: $e');
+    }
   }
 
   Future<void> _initializePlayer() async {

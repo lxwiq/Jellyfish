@@ -7,6 +7,7 @@ import 'package:open_file/open_file.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/github_release.dart';
 import 'logger_service.dart';
+import 'permission_service.dart';
 
 /// Service pour gérer les mises à jour natives via GitHub Releases
 class NativeUpdateService {
@@ -150,18 +151,50 @@ class NativeUpdateService {
   /// Installe l'APK sur Android
   Future<bool> _installAndroid(String filePath) async {
     try {
+      LoggerService.instance.info('📱 Vérification des permissions d\'installation...');
+
+      // Vérifier et demander la permission d'installer des packages
+      final hasPermission = await PermissionService.instance.hasInstallPackagesPermission();
+
+      if (!hasPermission) {
+        LoggerService.instance.info('🔐 Demande de permission d\'installation...');
+        final granted = await PermissionService.instance.requestInstallPackagesPermission();
+
+        if (!granted) {
+          LoggerService.instance.error('❌ Permission d\'installation refusée');
+          return false;
+        }
+      }
+
       LoggerService.instance.info('📱 Ouverture de l\'installateur Android...');
-      final result = await OpenFile.open(filePath);
+      LoggerService.instance.info('📂 Chemin du fichier: $filePath');
+
+      // Vérifier que le fichier existe
+      final file = File(filePath);
+      if (!await file.exists()) {
+        LoggerService.instance.error('❌ Le fichier APK n\'existe pas: $filePath');
+        return false;
+      }
+
+      final result = await OpenFile.open(
+        filePath,
+        type: 'application/vnd.android.package-archive',
+      );
 
       if (result.type == ResultType.done) {
         LoggerService.instance.info('✅ Installateur ouvert avec succès');
         return true;
       } else {
         LoggerService.instance.error('❌ Erreur lors de l\'ouverture: ${result.message}');
+        LoggerService.instance.error('   Type de résultat: ${result.type}');
         return false;
       }
-    } catch (e) {
-      LoggerService.instance.error('❌ Erreur lors de l\'installation Android: $e');
+    } catch (e, stackTrace) {
+      LoggerService.instance.error(
+        '❌ Erreur lors de l\'installation Android: $e',
+        error: e,
+        stackTrace: stackTrace,
+      );
       return false;
     }
   }

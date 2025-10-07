@@ -243,12 +243,13 @@ class ItemDetailEpisodeCard extends ConsumerWidget {
 
   void _playEpisode(BuildContext context, WidgetRef ref) {
     if (episode.id == null) return;
-    
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => VideoPlayerScreen(
           itemId: episode.id!,
           item: episode,
+          startPositionTicks: episode.userData?.playbackPositionTicks,
         ),
       ),
     );

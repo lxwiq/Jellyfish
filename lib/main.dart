@@ -11,6 +11,7 @@ import 'screens/splash_screen.dart';
 import 'providers/services_provider.dart';
 import 'services/logger_service.dart';
 import 'services/permission_service.dart';
+import 'services/cast_service.dart';
 
 
 void main() async {
@@ -59,6 +60,16 @@ void main() async {
 
   // Demander les permissions nécessaires
   await PermissionService.instance.requestInitialPermissions();
+
+  // Initialiser le service de Cast (Android et iOS uniquement)
+  if (Platform.isAndroid || Platform.isIOS) {
+    try {
+      await CastService().initialize();
+      LoggerService.instance.info('Service Cast initialisé');
+    } catch (e) {
+      LoggerService.instance.warning('Impossible d\'initialiser le Cast: $e');
+    }
+  }
 
   LoggerService.instance.info('Application initialisée avec succès');
 

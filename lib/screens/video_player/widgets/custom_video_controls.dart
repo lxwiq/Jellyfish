@@ -6,6 +6,7 @@ import '../../../theme/app_colors.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/video_player_provider.dart';
+import '../../../widgets/cast_button.dart';
 
 /// Contrôles vidéo personnalisés avec le design de l'app
 class CustomVideoControls extends ConsumerStatefulWidget {
@@ -133,6 +134,12 @@ class _CustomVideoControlsState extends ConsumerState<CustomVideoControls> {
               ),
             ),
             
+            // Bouton Cast
+            const CastButton(
+              iconColor: Colors.white,
+              iconSize: 24,
+            ),
+
             // Bouton paramètres
             IconButton(
               icon: const Icon(

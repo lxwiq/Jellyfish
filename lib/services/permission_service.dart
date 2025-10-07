@@ -124,6 +124,45 @@ class PermissionService {
     return await requestNotificationPermission();
   }
 
+  /// Demande la permission d'installer des packages (pour les mises à jour)
+  Future<bool> requestInstallPackagesPermission() async {
+    // Sur desktop, pas besoin de permission
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      return true;
+    }
+
+    if (Platform.isAndroid) {
+      // Android 8.0+ (API 26+) nécessite une permission runtime pour installer des APK
+      final androidInfo = await _getAndroidVersion();
+      if (androidInfo >= 26) {
+        final status = await Permission.requestInstallPackages.request();
+        return status.isGranted;
+      }
+      // Android < 8.0 n'a pas besoin de permission runtime
+      return true;
+    }
+
+    return true;
+  }
+
+  /// Vérifie si la permission d'installer des packages est accordée
+  Future<bool> hasInstallPackagesPermission() async {
+    // Sur desktop, toujours true
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      return true;
+    }
+
+    if (Platform.isAndroid) {
+      final androidInfo = await _getAndroidVersion();
+      if (androidInfo >= 26) {
+        return await Permission.requestInstallPackages.isGranted;
+      }
+      return true;
+    }
+
+    return true;
+  }
+
   /// Réinitialise les flags de demande de permission (pour les tests)
   void reset() {
     _notificationPermissionRequested = false;
