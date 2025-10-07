@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/downloaded_item.dart';
@@ -15,21 +16,62 @@ class DownloadsScreen extends ConsumerStatefulWidget {
 class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+
+    // Rafraîchir automatiquement toutes les 2 secondes pour les téléchargements actifs
+    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) {
+        ref.invalidate(activeDownloadsProvider);
+        ref.invalidate(downloadStatsProvider);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Activer le listener de progression pour l'actualisation automatique
+    ref.watch(downloadProgressListenerProvider);
+
+    // Écouter le stream de progression pour afficher des notifications et logs
+    ref.listen<AsyncValue<DownloadedItem>>(
+      downloadProgressStreamProvider,
+      (previous, next) {
+        next.whenData((item) {
+          // Log pour debug
+          print('📥 Update reçue: ${item.title} - ${item.progressPercentage} - ${item.status}');
+
+          if (item.isCompleted && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.title} downloaded successfully'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          } else if (item.isFailed && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.title} download failed'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        });
+      },
+    );
+
     final statsAsync = ref.watch(downloadStatsProvider);
 
     return Scaffold(
@@ -147,11 +189,15 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
           );
         }
 
+        // Garder le RefreshIndicator pour permettre un rafraîchissement manuel
+        // mais l'actualisation se fait maintenant automatiquement via le stream
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(activeDownloadsProvider);
+            ref.invalidate(downloadStatsProvider);
           },
           child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: downloads.length,
             itemBuilder: (context, index) {
               return DownloadProgressCard(item: downloads[index]);
@@ -180,8 +226,10 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(completedDownloadsProvider);
+            ref.invalidate(downloadStatsProvider);
           },
           child: ListView.builder(
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: downloads.length,
             itemBuilder: (context, index) {
               return DownloadProgressCard(item: downloads[index]);
@@ -207,34 +255,36 @@ class _DownloadsScreenState extends ConsumerState<DownloadsScreen>
           );
         }
 
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(failedDownloadsProvider);
-          },
-          child: Column(
-            children: [
-              // Bouton pour réessayer tous
-              if (downloads.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ElevatedButton.icon(
-                    onPressed: () => _retryAllFailed(downloads),
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry All'),
-                  ),
+        return Column(
+          children: [
+            // Bouton pour réessayer tous
+            if (downloads.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: ElevatedButton.icon(
+                  onPressed: () => _retryAllFailed(downloads),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry All'),
                 ),
+              ),
 
-              // Liste des téléchargements échoués
-              Expanded(
+            // Liste des téléchargements échoués avec RefreshIndicator
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(failedDownloadsProvider);
+                  ref.invalidate(downloadStatsProvider);
+                },
                 child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   itemCount: downloads.length,
                   itemBuilder: (context, index) {
                     return DownloadProgressCard(item: downloads[index]);
                   },
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

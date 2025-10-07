@@ -158,6 +158,33 @@ String? getItemImageUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth, int? ma
   );
 }
 
+/// Helper pour obtenir l'URL du poster de la série parente pour un épisode
+/// Retourne le poster de la série si l'item est un épisode, sinon le poster de l'item lui-même
+String? getItemPosterUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth, int? maxHeight}) {
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (item.id == null) return null;
+
+  // Pour les épisodes, utiliser le poster de la série parente
+  if (item.type?.value == 'Episode') {
+    if (item.seriesId != null) {
+      return jellyfinService.getImageUrl(
+        item.seriesId!,
+        maxWidth: maxWidth,
+        maxHeight: maxHeight,
+      );
+    }
+  }
+
+  // Pour les autres types (films, séries), utiliser leur propre poster
+  return jellyfinService.getImageUrl(
+    item.id!,
+    tag: item.imageTags?['Primary'],
+    maxWidth: maxWidth,
+    maxHeight: maxHeight,
+  );
+}
+
 /// Helper pour obtenir l'URL d'une image backdrop haute qualité pour les cards
 /// Avec fallback vers trickplay et thumb si backdrop non disponible
 String? getItemCardBackdropUrl(WidgetRef ref, BaseItemDto item, {int? maxWidth}) {

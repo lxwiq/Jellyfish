@@ -38,10 +38,31 @@ class PosterCard extends ConsumerWidget {
 
     // Optimiser les paramètres d'image
     final optimalWidth = CardConstants.getOptimalImageWidth(cardWidth);
-    final imageUrl = getItemImageUrl(ref, item, maxWidth: optimalWidth);
-    final title = item.name ?? 'Sans titre';
-    final metadata = getSeriesMetadata(item);
+
+    // Déterminer le type d'item
+    final isEpisode = item.type?.value == 'Episode';
     final isSeries = item.type?.value == 'Series';
+
+    // Pour les épisodes, utiliser le poster de la série parente
+    final imageUrl = getItemPosterUrl(ref, item, maxWidth: optimalWidth);
+
+    // Titre et sous-titre
+    final String title;
+    final String? subtitle;
+
+    if (isEpisode) {
+      // Pour les épisodes : afficher le nom de la série
+      title = item.seriesName ?? item.name ?? 'Sans titre';
+      // Sous-titre : S1:E1 - Episode 1
+      final seasonNum = item.parentIndexNumber ?? 0;
+      final episodeNum = item.indexNumber ?? 0;
+      final episodeName = item.name ?? '';
+      subtitle = 'S$seasonNum:E$episodeNum${episodeName.isNotEmpty ? ' - $episodeName' : ''}';
+    } else {
+      // Pour les films et séries : afficher le nom de l'item
+      title = item.name ?? 'Sans titre';
+      subtitle = getSeriesMetadata(item);
+    }
 
     return SizedBox(
       width: cardWidth,
@@ -160,11 +181,11 @@ class PosterCard extends ConsumerWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          // Métadonnées de la série (années et statut)
-          if (metadata != null) ...[
+          // Sous-titre (métadonnées de la série ou info de l'épisode)
+          if (subtitle != null) ...[
             const SizedBox(height: 2),
             Text(
-              metadata,
+              subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.text3,
                 height: 1.2,

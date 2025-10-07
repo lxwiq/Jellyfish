@@ -139,6 +139,18 @@ class OfflineDownloadService {
       filename,
     );
 
+    // Créer les métadonnées pour les épisodes de séries
+    Map<String, dynamic>? metadata;
+    if (item.type?.value == 'Episode') {
+      metadata = {
+        'seriesName': item.seriesName,
+        'seriesId': item.seriesId,
+        'seasonNumber': item.parentIndexNumber,
+        'episodeNumber': item.indexNumber,
+        'episodeName': item.name,
+      };
+    }
+
     // Créer l'entrée dans la base de données
     final downloadedItem = DownloadedItem(
       id: downloadId,
@@ -151,6 +163,7 @@ class OfflineDownloadService {
       status: DownloadStatus.pending,
       createdAt: DateTime.now(),
       quality: quality,
+      metadata: metadata,
     );
 
     await _storageService.insertDownloadedItem(downloadedItem);
@@ -227,6 +240,7 @@ class OfflineDownloadService {
     await _storageService.updateDownloadedItem(updatedItem);
 
     // Émettre l'événement de progression
+    print('📤 Émission update: ${updatedItem.title} - ${updatedItem.progressPercentage} - ${updatedItem.status}');
     _progressController.add(updatedItem);
 
     // Mettre à jour la notification
@@ -436,6 +450,16 @@ class OfflineDownloadService {
   /// Obtient l'URL de l'image
   String? _getImageUrl(BaseItemDto item) {
     if (item.id == null) return null;
+
+    // Pour les épisodes, utiliser le poster de la série
+    if (item.type?.value == 'Episode' && item.seriesId != null) {
+      return _jellyfinService.getImageUrl(
+        item.seriesId!,
+        maxWidth: 400,
+      );
+    }
+
+    // Pour les autres types, utiliser l'image principale
     final primaryTag = item.imageTags?['Primary'];
     if (primaryTag != null) {
       return _jellyfinService.getImageUrl(item.id!, tag: primaryTag);

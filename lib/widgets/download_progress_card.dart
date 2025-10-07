@@ -16,10 +16,18 @@ class DownloadProgressCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Écouter les mises à jour en temps réel pour cet item
+    final itemStreamAsync = ref.watch(downloadedItemStreamProvider(item.id));
+
+    // Utiliser l'item du stream s'il est disponible, sinon utiliser l'item initial
+    final currentItem = itemStreamAsync.whenOrNull(
+      data: (streamItem) => streamItem,
+    ) ?? item;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
-        onTap: () => _showDetails(context, ref),
+        onTap: () => _showDetails(context, ref, currentItem),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -28,7 +36,7 @@ class DownloadProgressCard extends ConsumerWidget {
               Row(
                 children: [
                   // Thumbnail
-                  _buildThumbnail(),
+                  _buildThumbnail(currentItem),
                   const SizedBox(width: 12),
 
                   // Info
@@ -36,29 +44,36 @@ class DownloadProgressCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          item.title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        // Affichage spécial pour les épisodes
+                        if (currentItem.itemType == 'Episode' && currentItem.metadata != null)
+                          _buildEpisodeInfo(context, currentItem)
+                        else
+                          Text(
+                            currentItem.title,
+                            style: Theme.of(context).textTheme.titleMedium,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         const SizedBox(height: 4),
-                        _buildStatusText(context),
+                        _buildStatusText(context, currentItem),
                         const SizedBox(height: 4),
-                        _buildSizeText(context),
+                        _buildSizeText(context, currentItem),
                       ],
                     ),
                   ),
 
                   // Actions
-                  _buildActionButton(context, ref),
+                  _buildActionButton(context, ref, currentItem),
                 ],
               ),
 
-              // Progress bar
-              if (item.isDownloading || item.isPaused) ...[
+              // Progress bar - afficher pour tous les téléchargements non terminés
+              if (currentItem.isDownloading ||
+                  currentItem.isPaused ||
+                  currentItem.isPending ||
+                  (currentItem.isFailed && currentItem.progress > 0)) ...[
                 const SizedBox(height: 12),
-                _buildProgressBar(),
+                _buildProgressBar(currentItem),
               ],
             ],
           ),
@@ -67,16 +82,72 @@ class DownloadProgressCard extends ConsumerWidget {
     );
   }
 
+  /// Construit l'affichage des informations d'épisode
+  Widget _buildEpisodeInfo(BuildContext context, DownloadedItem currentItem) {
+    final metadata = currentItem.metadata!;
+    final seriesName = metadata['seriesName'] as String?;
+    final seasonNumber = metadata['seasonNumber'] as int?;
+    final episodeNumber = metadata['episodeNumber'] as int?;
+    final episodeName = metadata['episodeName'] as String?;
+
+    if (seriesName == null || seasonNumber == null || episodeNumber == null) {
+      return Text(
+        currentItem.title,
+        style: Theme.of(context).textTheme.titleMedium,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final episodeText = 'S$seasonNumber:E$episodeNumber';
+    final episodeTitle = episodeName ?? 'Épisode $episodeNumber';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Titre de la série
+        Text(
+          seriesName,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        // S1E1 - Nom de l'épisode
+        RichText(
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          text: TextSpan(
+            style: Theme.of(context).textTheme.bodyMedium,
+            children: [
+              TextSpan(
+                text: episodeText,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              const TextSpan(text: ' - '),
+              TextSpan(text: episodeTitle),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Construit le thumbnail
-  Widget _buildThumbnail() {
+  Widget _buildThumbnail(DownloadedItem currentItem) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 80,
         height: 120,
-        child: item.imageUrl != null
+        child: currentItem.imageUrl != null
             ? CachedNetworkImage(
-                imageUrl: item.imageUrl!,
+                imageUrl: currentItem.imageUrl!,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
                   color: Colors.grey[800],
@@ -98,10 +169,10 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Construit le texte de statut
-  Widget _buildStatusText(BuildContext context) {
-    final color = _getStatusColor();
-    final icon = _getStatusIcon();
-    final text = _getStatusText();
+  Widget _buildStatusText(BuildContext context, DownloadedItem currentItem) {
+    final color = _getStatusColor(currentItem);
+    final icon = _getStatusIcon(currentItem);
+    final text = _getStatusText(currentItem);
 
     return Row(
       children: [
@@ -120,18 +191,18 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Construit le texte de taille
-  Widget _buildSizeText(BuildContext context) {
+  Widget _buildSizeText(BuildContext context, DownloadedItem currentItem) {
     final parts = <String>[
-      item.formattedSize,
-      item.quality.label,
+      currentItem.formattedSize,
+      currentItem.quality.label,
     ];
 
-    if (item.downloadSpeed != null && item.isDownloading) {
-      parts.add(item.downloadSpeed!);
+    if (currentItem.downloadSpeed != null && currentItem.isDownloading) {
+      parts.add(currentItem.downloadSpeed!);
     }
 
-    if (item.estimatedTimeRemaining != null && item.isDownloading) {
-      parts.add('ETA: ${item.estimatedTimeRemaining}');
+    if (currentItem.estimatedTimeRemaining != null && currentItem.isDownloading) {
+      parts.add('ETA: ${currentItem.estimatedTimeRemaining}');
     }
 
     return Text(
@@ -141,44 +212,79 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Construit la barre de progression
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(DownloadedItem currentItem) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LinearProgressIndicator(
-          value: item.progress,
-          backgroundColor: Colors.grey[800],
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              currentItem.progressPercentage,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (currentItem.downloadSpeed != null && currentItem.isDownloading)
+              Text(
+                currentItem.downloadSpeed!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[400],
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 4),
-        Text(
-          item.progressPercentage,
-          style: const TextStyle(fontSize: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            tween: Tween<double>(
+              begin: currentItem.progress,
+              end: currentItem.progress,
+            ),
+            builder: (context, value, _) => LinearProgressIndicator(
+              value: value,
+              minHeight: 6,
+              backgroundColor: Colors.grey[800],
+              valueColor: AlwaysStoppedAnimation<Color>(
+                currentItem.isFailed
+                    ? Colors.red
+                    : currentItem.isPaused
+                        ? Colors.orange
+                        : Theme.of(context).primaryColor,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
   /// Construit le bouton d'action
-  Widget _buildActionButton(BuildContext context, WidgetRef ref) {
-    if (item.isDownloading) {
+  Widget _buildActionButton(BuildContext context, WidgetRef ref, DownloadedItem currentItem) {
+    if (currentItem.isDownloading) {
       return IconButton(
-        onPressed: () => _pauseDownload(ref),
+        onPressed: () => _pauseDownload(ref, currentItem),
         icon: const Icon(Icons.pause),
         tooltip: 'Pause',
       );
     }
 
-    if (item.isPaused || item.isFailed) {
+    if (currentItem.isPaused || currentItem.isFailed) {
       return IconButton(
-        onPressed: () => _resumeDownload(ref),
+        onPressed: () => _resumeDownload(ref, currentItem),
         icon: const Icon(Icons.play_arrow),
         tooltip: 'Resume',
       );
     }
 
-    if (item.isCompleted) {
+    if (currentItem.isCompleted) {
       return IconButton(
-        onPressed: () => _showOptions(context, ref),
+        onPressed: () => _showOptions(context, ref, currentItem),
         icon: const Icon(Icons.more_vert),
         tooltip: 'Options',
       );
@@ -188,8 +294,8 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Obtient la couleur du statut
-  Color _getStatusColor() {
-    switch (item.status) {
+  Color _getStatusColor(DownloadedItem currentItem) {
+    switch (currentItem.status) {
       case DownloadStatus.downloading:
         return Colors.blue;
       case DownloadStatus.completed:
@@ -206,8 +312,8 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Obtient l'icône du statut
-  IconData _getStatusIcon() {
-    switch (item.status) {
+  IconData _getStatusIcon(DownloadedItem currentItem) {
+    switch (currentItem.status) {
       case DownloadStatus.downloading:
         return Icons.download;
       case DownloadStatus.completed:
@@ -224,8 +330,8 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Obtient le texte du statut
-  String _getStatusText() {
-    switch (item.status) {
+  String _getStatusText(DownloadedItem currentItem) {
+    switch (currentItem.status) {
       case DownloadStatus.downloading:
         return 'Downloading';
       case DownloadStatus.completed:
@@ -242,45 +348,45 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Met en pause le téléchargement
-  Future<void> _pauseDownload(WidgetRef ref) async {
+  Future<void> _pauseDownload(WidgetRef ref, DownloadedItem currentItem) async {
     final service = ref.read(offlineDownloadServiceProvider);
-    await service.pauseDownload(item.id);
+    await service.pauseDownload(currentItem.id);
   }
 
   /// Reprend le téléchargement
-  Future<void> _resumeDownload(WidgetRef ref) async {
+  Future<void> _resumeDownload(WidgetRef ref, DownloadedItem currentItem) async {
     final service = ref.read(offlineDownloadServiceProvider);
-    await service.resumeDownload(item.id);
+    await service.resumeDownload(currentItem.id);
   }
 
   /// Affiche les détails
-  void _showDetails(BuildContext context, WidgetRef ref) {
+  void _showDetails(BuildContext context, WidgetRef ref, DownloadedItem currentItem) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(item.title),
+        title: Text(currentItem.title),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (item.description != null) ...[
-              Text(item.description!),
+            if (currentItem.description != null) ...[
+              Text(currentItem.description!),
               const SizedBox(height: 16),
             ],
-            _buildDetailRow('Status', _getStatusText()),
-            _buildDetailRow('Quality', item.quality.label),
-            _buildDetailRow('Size', item.formattedSize),
-            _buildDetailRow('Progress', item.progressPercentage),
-            if (item.errorMessage != null)
-              _buildDetailRow('Error', item.errorMessage!),
+            _buildDetailRow('Status', _getStatusText(currentItem)),
+            _buildDetailRow('Quality', currentItem.quality.label),
+            _buildDetailRow('Size', currentItem.formattedSize),
+            _buildDetailRow('Progress', currentItem.progressPercentage),
+            if (currentItem.errorMessage != null)
+              _buildDetailRow('Error', currentItem.errorMessage!),
           ],
         ),
         actions: [
-          if (item.canCancel)
+          if (currentItem.canCancel)
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _cancelDownload(context, ref);
+                _cancelDownload(context, ref, currentItem);
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('Cancel'),
@@ -318,7 +424,7 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Affiche les options
-  void _showOptions(BuildContext context, WidgetRef ref) {
+  void _showOptions(BuildContext context, WidgetRef ref, DownloadedItem currentItem) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -338,7 +444,7 @@ class DownloadProgressCard extends ConsumerWidget {
               title: const Text('Delete'),
               onTap: () {
                 Navigator.of(context).pop();
-                _deleteDownload(context, ref);
+                _deleteDownload(context, ref, currentItem);
               },
             ),
           ],
@@ -348,9 +454,9 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Annule le téléchargement
-  Future<void> _cancelDownload(BuildContext context, WidgetRef ref) async {
+  Future<void> _cancelDownload(BuildContext context, WidgetRef ref, DownloadedItem currentItem) async {
     final service = ref.read(offlineDownloadServiceProvider);
-    await service.cancelDownload(item.id);
+    await service.cancelDownload(currentItem.id);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -360,7 +466,7 @@ class DownloadProgressCard extends ConsumerWidget {
   }
 
   /// Supprime le téléchargement
-  Future<void> _deleteDownload(BuildContext context, WidgetRef ref) async {
+  Future<void> _deleteDownload(BuildContext context, WidgetRef ref, DownloadedItem currentItem) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -382,7 +488,7 @@ class DownloadProgressCard extends ConsumerWidget {
 
     if (confirmed == true && context.mounted) {
       final service = ref.read(offlineDownloadServiceProvider);
-      await service.deleteDownload(item.id);
+      await service.deleteDownload(currentItem.id);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

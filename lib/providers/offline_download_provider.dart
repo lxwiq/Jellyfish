@@ -93,10 +93,76 @@ final downloadedItemByJellyfinIdProvider = FutureProvider.family<DownloadedItem?
   },
 );
 
+/// Provider pour obtenir un item téléchargé par son ID de téléchargement
+final downloadedItemByIdProvider = FutureProvider.family<DownloadedItem?, String>(
+  (ref, downloadId) async {
+    final storageService = ref.watch(offlineStorageServiceProvider);
+    return await storageService.getDownloadedItem(downloadId);
+  },
+);
+
+/// Provider pour obtenir un item téléchargé en temps réel (avec stream)
+final downloadedItemStreamProvider = StreamProvider.family<DownloadedItem?, String>(
+  (ref, downloadId) {
+    final storageService = ref.watch(offlineStorageServiceProvider);
+    final service = ref.watch(offlineDownloadServiceProvider);
+
+    // Créer un stream qui combine l'état initial et les mises à jour
+    return Stream.multi((controller) async {
+      // Émettre l'état initial
+      final initialItem = await storageService.getDownloadedItem(downloadId);
+      if (!controller.isClosed) {
+        controller.add(initialItem);
+      }
+
+      // Écouter les mises à jour du stream de progression
+      final subscription = service.progressStream.listen(
+        (updatedItem) {
+          if (updatedItem.id == downloadId && !controller.isClosed) {
+            controller.add(updatedItem);
+          }
+        },
+        onError: (error) {
+          if (!controller.isClosed) {
+            controller.addError(error);
+          }
+        },
+      );
+
+      // Nettoyer lors de la fermeture
+      controller.onCancel = () {
+        subscription.cancel();
+      };
+    });
+  },
+);
+
 /// Provider pour le stream de progression des téléchargements
 final downloadProgressStreamProvider = StreamProvider<DownloadedItem>((ref) {
   final service = ref.watch(offlineDownloadServiceProvider);
   return service.progressStream;
+});
+
+/// Provider qui écoute le stream de progression et invalide les autres providers
+final downloadProgressListenerProvider = Provider<void>((ref) {
+  // Écouter le stream de progression
+  ref.listen<AsyncValue<DownloadedItem>>(
+    downloadProgressStreamProvider,
+    (previous, next) {
+      next.whenData((item) {
+        // Invalider les providers de listes pour forcer le rafraîchissement
+        ref.invalidate(activeDownloadsProvider);
+        ref.invalidate(completedDownloadsProvider);
+        ref.invalidate(failedDownloadsProvider);
+        ref.invalidate(allDownloadsProvider);
+        ref.invalidate(downloadStatsProvider);
+
+        // Invalider le provider spécifique à cet item
+        ref.invalidate(downloadedItemByJellyfinIdProvider(item.itemId));
+        ref.invalidate(isItemDownloadedProvider(item.itemId));
+      });
+    },
+  );
 });
 
 /// Provider pour les statistiques de téléchargement
