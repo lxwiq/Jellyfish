@@ -407,11 +407,13 @@ class _SearchFiltersPanelState extends ConsumerState<SearchFiltersPanel> {
   }
 
   Widget _buildSortOptions(SearchFilters filters) {
+    final currentSort = SortOption.options.firstWhere(
+      (opt) => opt.sortBy == filters.sortBy && opt.sortOrder == filters.sortOrder,
+      orElse: () => SortOption.options.first,
+    );
+
     return DropdownButtonFormField<SortOption>(
-      initialValue: SortOption.options.firstWhere(
-        (opt) => opt.sortBy == filters.sortBy && opt.sortOrder == filters.sortOrder,
-        orElse: () => SortOption.options.first,
-      ),
+      value: currentSort,
       decoration: InputDecoration(
         filled: true,
         fillColor: AppColors.surface1,
