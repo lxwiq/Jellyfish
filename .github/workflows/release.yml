@@ -3,7 +3,8 @@ name: Build and Release
 on:
   push:
     tags:
-      - '*.*.*'  # Déclenche sur les tags comme 1.0.0, 1.2.3, etc.
+      - 'v*.*.*'  # Déclenche sur les tags comme v1.0.0, v1.2.3, etc.
+      - '*.*.*'   # Déclenche sur les tags comme 1.0.0, 1.2.3, etc.
 
 jobs:
   validate:
@@ -12,8 +13,8 @@ jobs:
     steps:
       - name: Ensure tag matches X.x.x
         run: |
-          if [[ ! "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag '${GITHUB_REF_NAME}' must match X.x.x (e.g., 1.2.3).";
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag '${GITHUB_REF_NAME}' must match X.x.x with optional leading 'v' (e.g., 1.2.3 or v1.2.3).";
             exit 1;
           fi
 
@@ -128,7 +129,7 @@ jobs:
       - name: Update version in installer script
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}"
+          $version = "${{ github.ref_name }}".TrimStart('v')
           (Get-Content windows/installer.iss) -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`"" | Set-Content windows/installer.iss
 
       - name: List build directory (debug)
@@ -151,7 +152,7 @@ jobs:
       - name: Rename Installer
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}"
+          $version = "${{ github.ref_name }}".TrimStart('v')
           $installerFiles = Get-ChildItem -Path "build\windows\installer\JellyfishSetup-*.exe"
           if ($installerFiles) {
             Move-Item $installerFiles[0].FullName "build\windows\installer\JellyfishSetup-$version.exe" -Force
@@ -237,14 +238,16 @@ jobs:
 
       - name: Extract version
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+        run: |
+          echo "TAG=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Jellyfish ${{ steps.version.outputs.VERSION }}
+          name: Jellyfish v${{ steps.version.outputs.VERSION }}
           body: |
-            ## 🎉 Jellyfish ${{ steps.version.outputs.VERSION }}
+            ## 🎉 Jellyfish v${{ steps.version.outputs.VERSION }}
 
             ### 📥 Téléchargements
 
@@ -282,7 +285,7 @@ jobs:
           nodetail: true
           title: "Une nouvelle version de Jellyfish est disponible 🎉"
           description: |
-            Version `${{ steps.version.outputs.VERSION }}` publiée.
+            Version `v${{ steps.version.outputs.VERSION }}` publiée.
 
             - 📥 **Téléchargements**: Android (APK), Windows (Installateur) et Web
             - 🌐 **Version Web**: [https://lxwiq.github.io/Jellyfish/](https://lxwiq.github.io/Jellyfish/)
@@ -290,7 +293,7 @@ jobs:
             - 🔄 **Mise à jour manuelle**: ouvrez Paramètres → Mises à jour puis appuyez sur « Mettre à jour »
 
             **Liens directs**:
-            - [📦 Télécharger la release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.VERSION }})
+            - [📦 Télécharger la release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.TAG }})
             - [🌐 Ouvrir la version Web](https://lxwiq.github.io/Jellyfish/)
           color: 0x00A4DC
 
