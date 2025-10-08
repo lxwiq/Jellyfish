@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:jellyfish/services/logger_service.dart';
 
 import 'package:dio/dio.dart';
@@ -27,6 +28,12 @@ class NativeUpdateService {
   /// Vérifie si une mise à jour native est disponible
   Future<GitHubRelease?> checkForUpdate() async {
     try {
+      // Sur web, pas de mise à jour native
+      if (kIsWeb) {
+        LoggerService.instance.info('Les mises à jour natives ne sont pas disponibles sur le web');
+        return null;
+      }
+
       // Récupérer la version actuelle
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
@@ -85,6 +92,12 @@ class NativeUpdateService {
     Function(double)? onProgress,
   }) async {
     try {
+      // Sur web, pas de mise à jour native possible
+      if (kIsWeb) {
+        LoggerService.instance.info('Les mises à jour natives ne sont pas disponibles sur le web');
+        return false;
+      }
+
       LoggerService.instance.info('Début du téléchargement de la mise à jour ${release.version}');
 
       // Déterminer l'asset à télécharger selon la plateforme

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_chrome_cast/flutter_chrome_cast.dart';
@@ -19,8 +20,8 @@ class CastMiniControllerWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Ne pas afficher sur desktop
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    // Ne pas afficher sur web et desktop
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
       return child;
     }
 

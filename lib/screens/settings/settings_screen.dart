@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,11 +48,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _loadPackageInfo() async {
-    final info = await PackageInfo.fromPlatform();
-    if (mounted) {
-      setState(() {
-        _packageInfo = info;
-      });
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _packageInfo = info;
+        });
+      }
+    } catch (e) {
+      // Sur web, PackageInfo peut ne pas fonctionner correctement
+      if (kIsWeb && mounted) {
+        setState(() {
+          _packageInfo = PackageInfo(
+            appName: 'Jellyfish',
+            packageName: 'com.lxwiq.jellyfish',
+            version: '0.2.3',
+            buildNumber: '14',
+          );
+        });
+      }
     }
   }
 

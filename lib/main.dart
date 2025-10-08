@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -18,7 +19,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialiser sqflite pour les plateformes desktop (Windows, macOS, Linux)
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }
@@ -62,7 +63,7 @@ void main() async {
   await PermissionService.instance.requestInitialPermissions();
 
   // Initialiser le service de Cast (Android et iOS uniquement)
-  if (Platform.isAndroid || Platform.isIOS) {
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     try {
       await CastService().initialize();
       LoggerService.instance.info('Service Cast initialisé');

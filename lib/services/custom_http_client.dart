@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:jellyfish/services/logger_service.dart';
@@ -14,6 +15,11 @@ class CustomHttpClient extends http.BaseClient {
 
   /// Crée un client HTTP avec gestion appropriée des certificats SSL
   factory CustomHttpClient() {
+    // Sur Web, utiliser le client HTTP par défaut compatible navigateur
+    if (kIsWeb) {
+      return CustomHttpClient._internal(http.Client());
+    }
+
     final ioClient = HttpClient();
 
     // Configuration pour accepter les certificats auto-signés en développement
@@ -33,6 +39,11 @@ class CustomHttpClient extends http.BaseClient {
   /// Crée un client HTTP avec validation stricte des certificats
   /// Utilise les certificats système de Windows
   factory CustomHttpClient.secure() {
+    // Sur Web, utiliser le client par défaut (validation gérée par le navigateur)
+    if (kIsWeb) {
+      return CustomHttpClient._internal(http.Client());
+    }
+
     final ioClient = HttpClient();
 
     // Sur Windows, utiliser les certificats du système

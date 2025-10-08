@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:jellyfish/services/logger_service.dart';
@@ -34,6 +35,11 @@ class CustomHttpFileService extends HttpFileService {
   CustomHttpFileService() : super(httpClient: _createHttpClient());
 
   static http.Client _createHttpClient() {
+    // Sur Web, utiliser le client HTTP par défaut compatible navigateur
+    if (kIsWeb) {
+      return http.Client();
+    }
+
     final ioClient = HttpClient();
 
     // Configuration pour accepter les certificats auto-signés

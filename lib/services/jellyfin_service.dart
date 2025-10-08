@@ -1,4 +1,6 @@
 import 'package:jellyfish/jellyfin/jellyfin_open_api.swagger.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:jellyfish/services/jellyfin_interceptor.dart';
 import 'package:jellyfish/services/custom_http_client.dart';
 import '../models/user.dart' as app_models;
@@ -854,6 +856,13 @@ class JellyfinService {
       'api_key': _accessToken!,
       'PlaySessionId': DateTime.now().millisecondsSinceEpoch.toString(),
     };
+
+    // Sur Web, forcer un codec audio compatible navigateur & streriser
+    if (kIsWeb) {
+      params['AudioCodec'] = 'aac';
+      params['MaxAudioChannels'] = '2';
+      params['AllowAudioStreamCopy'] = 'false';
+    }
 
     if (audioStreamIndex != null) {
       params['AudioStreamIndex'] = audioStreamIndex.toString();

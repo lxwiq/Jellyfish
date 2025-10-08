@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_chrome_cast/flutter_chrome_cast.dart';
 import 'package:logging/logging.dart';
 
@@ -68,7 +69,10 @@ class CastService {
 
       GoogleCastOptions? options;
 
-      if (Platform.isIOS) {
+      if (kIsWeb) {
+        _logger.info('🌐 Cast non disponible sur Web');
+        return;
+      } else if (Platform.isIOS) {
         _logger.info('🍎 Configuration iOS');
         options = IOSGoogleCastOptions(
           GoogleCastDiscoveryCriteriaInitialize.initWithApplicationID(appId),

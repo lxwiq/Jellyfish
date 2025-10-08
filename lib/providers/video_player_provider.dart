@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'services_provider.dart';
 import 'settings_provider.dart';
 import '../jellyfin/jellyfin_open_api.swagger.dart';
@@ -127,7 +129,7 @@ class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
     final settings = settingsAsync.value;
 
     // Déterminer si on utilise HLS
-    final shouldUseHls = useHls ?? settings?.video.useHls ?? false;
+    final shouldUseHls = kIsWeb ? true : (useHls ?? settings?.video.useHls ?? false);
 
     // Si les index ne sont pas spécifiés, utiliser les préférences
     final finalAudioIndex = audioStreamIndex ??

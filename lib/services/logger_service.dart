@@ -19,9 +19,16 @@ class LoggerService {
     if (_initialized) return;
 
     try {
+      // Sur web, le logging vers fichier n'est pas supporté
+      if (kIsWeb) {
+        _initialized = true;
+        debugPrint('[INFO] Logger initialisé en mode Web (console uniquement)');
+        return;
+      }
+
       final directory = await getApplicationDocumentsDirectory();
       final logsDir = Directory('${directory.path}/logs');
-      
+
       // Créer le dossier logs s'il n'existe pas
       if (!await logsDir.exists()) {
         await logsDir.create(recursive: true);
@@ -35,12 +42,12 @@ class LoggerService {
       await _cleanOldLogs(logsDir);
 
       _initialized = true;
-      
+
       // Log de démarrage
       await log('INFO', '========== Application démarrée ==========');
       await log('INFO', 'Version: ${DateTime.now()}');
-      await log('INFO', 'Plateforme: ${Platform.operatingSystem}');
-      
+      await log('INFO', 'Plateforme: ${kIsWeb ? 'Web' : Platform.operatingSystem}');
+
     } catch (e) {
       debugPrint('❌ Erreur lors de l\'initialisation du logger: $e');
     }
@@ -49,12 +56,15 @@ class LoggerService {
   /// Écrit un log dans le fichier
   Future<void> log(String level, String message, {Object? error, StackTrace? stackTrace}) async {
     try {
-      // En mode debug, afficher aussi dans la console
-      if (kDebugMode) {
+      // En mode debug ou web, afficher dans la console
+      if (kDebugMode || kIsWeb) {
         debugPrint('[$level] $message');
         if (error != null) debugPrint('Error: $error');
         if (stackTrace != null) debugPrint('StackTrace: $stackTrace');
       }
+
+      // Sur web, pas de fichier de log
+      if (kIsWeb) return;
 
       // Si pas initialisé, initialiser maintenant
       if (!_initialized) {
@@ -209,7 +219,7 @@ class LoggerService {
       final buffer = StringBuffer();
       buffer.writeln('========== Jellyfish Logs Export ==========');
       buffer.writeln('Date: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now())}');
-      buffer.writeln('Platform: ${Platform.operatingSystem}');
+      buffer.writeln('Platform: ${kIsWeb ? 'Web' : Platform.operatingSystem}');
       buffer.writeln('===========================================\n');
 
       for (final file in files) {

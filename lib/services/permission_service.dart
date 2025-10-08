@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 
@@ -12,17 +13,17 @@ class PermissionService {
 
   /// Demande toutes les permissions nécessaires au démarrage
   Future<void> requestInitialPermissions() async {
-    // Sur desktop (Windows, macOS, Linux), pas besoin de demander de permissions
+    // Sur web et desktop (Windows, macOS, Linux), pas besoin de demander de permissions
     // Les notifications fonctionnent automatiquement
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       await requestNotificationPermission();
     }
   }
 
   /// Demande la permission de notification
   Future<bool> requestNotificationPermission() async {
-    // Sur desktop (Windows, macOS, Linux), pas besoin de permission
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    // Sur web et desktop (Windows, macOS, Linux), pas besoin de permission
+    if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return true;
     }
 
@@ -51,8 +52,8 @@ class PermissionService {
 
   /// Vérifie si la permission de notification est accordée
   Future<bool> hasNotificationPermission() async {
-    // Sur desktop, toujours true
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    // Sur web et desktop, toujours true
+    if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return true;
     }
 
@@ -126,8 +127,8 @@ class PermissionService {
 
   /// Demande la permission d'installer des packages (pour les mises à jour)
   Future<bool> requestInstallPackagesPermission() async {
-    // Sur desktop, pas besoin de permission
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    // Sur web et desktop, pas besoin de permission
+    if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return true;
     }
 
@@ -147,8 +148,8 @@ class PermissionService {
 
   /// Vérifie si la permission d'installer des packages est accordée
   Future<bool> hasInstallPackagesPermission() async {
-    // Sur desktop, toujours true
-    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    // Sur web et desktop, toujours true
+    if (kIsWeb || Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       return true;
     }
 

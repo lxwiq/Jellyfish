@@ -59,6 +59,33 @@ jobs:
           name: android-apk
           path: build/app/outputs/flutter-apk/Jellyfish-*.apk
 
+  # ========== BUILD WEB ==========
+  build-web:
+    name: Build Web Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Web
+        run: flutter build web --release --base-href "/Jellyfish/"
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+
   # ========== BUILD WINDOWS ==========
   build-windows:
     name: Build Windows Installer
@@ -125,14 +152,45 @@ jobs:
           name: windows-installer
           path: build/windows/installer/JellyfishSetup-*.exe
 
+  # ========== DEPLOY WEB ==========
+  deploy-web:
+    name: Deploy to GitHub Pages
+    needs: build-web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download Web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   # ========== CREATE RELEASE ==========
   create-release:
     name: Create GitHub Release
-    needs: [build-android, build-windows]
+    needs: [build-android, build-windows, build-web]
     runs-on: ubuntu-latest
     environment: jellyfish
     permissions:
       contents: write
+      pages: write
+      id-token: write
     
     steps:
       - name: Checkout code
@@ -150,10 +208,17 @@ jobs:
           name: windows-installer
           path: ./artifacts
 
+      - name: Download Web Build
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: ./artifacts/web
+
       - name: List downloaded artifacts (debug)
         run: |
           echo "Listing artifacts directory:"
           ls -la ./artifacts/
+          ls -la ./artifacts/web/ || echo "Web directory not found"
 
       - name: Extract version
         id: version
@@ -170,6 +235,7 @@ jobs:
 
             - **Android**: `Jellyfish-${{ steps.version.outputs.VERSION }}.apk`
             - **Windows**: `JellyfishSetup-${{ steps.version.outputs.VERSION }}.exe`
+            - **Web**: [https://lxwiq.github.io/Jellyfish/](https://lxwiq.github.io/Jellyfish/)
 
             ### 📝 Notes de version
 
@@ -203,10 +269,13 @@ jobs:
           description: |
             Version `v${{ steps.version.outputs.VERSION }}` publiée.
 
-            - 📥 Téléchargements: Android (APK) et Windows (Installateur)
-            - 📝 Notes de version: disponibles sur la page de release
-            - 🔄 Mise à jour manuelle: ouvrez Paramètres → Mises à jour puis appuyez sur « Mettre à jour ».
+            - 📥 **Téléchargements**: Android (APK), Windows (Installateur) et Web
+            - 🌐 **Version Web**: [https://lxwiq.github.io/Jellyfish/](https://lxwiq.github.io/Jellyfish/)
+            - 📝 **Notes de version**: disponibles sur la page de release
+            - 🔄 **Mise à jour manuelle**: ouvrez Paramètres → Mises à jour puis appuyez sur « Mettre à jour »
 
-            Lien direct: [Ouvrir la release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }})
+            **Liens directs**:
+            - [📦 Télécharger la release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }})
+            - [🌐 Ouvrir la version Web](https://lxwiq.github.io/Jellyfish/)
           color: 0x00A4DC
 
