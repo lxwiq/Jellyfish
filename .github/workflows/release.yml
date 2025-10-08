@@ -164,25 +164,25 @@ jobs:
           name: Jellyfish v${{ steps.version.outputs.VERSION }}
           body: |
             ## 🎉 Jellyfish v${{ steps.version.outputs.VERSION }}
-            
+
             ### 📥 Téléchargements
-            
+
             - **Android**: `Jellyfish-${{ steps.version.outputs.VERSION }}.apk`
             - **Windows**: `JellyfishSetup-${{ steps.version.outputs.VERSION }}.exe`
-            
+
             ### 📝 Notes de version
-            
+
             <!-- Ajoutez vos notes de version ici -->
-            
+
             ### 🔄 Mise à jour
-            
+
             L'application vérifie automatiquement les mises à jour au démarrage.
             Vous pouvez aussi vérifier manuellement dans **Paramètres > Mises à jour**.
-            
+
             ---
-            
+
             **Installation Android** : Téléchargez l'APK et installez-le. Vous devrez peut-être autoriser l'installation depuis des sources inconnues.
-            
+
             **Installation Windows** : Téléchargez et exécutez l'installateur. L'ancienne version sera automatiquement désinstallée.
           files: |
             ./artifacts/Jellyfish-*.apk
@@ -191,4 +191,21 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Discord
+        uses: sarisia/actions-status-discord@v1
+        if: success()
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          nodetail: true
+          title: "Une nouvelle version de Jellyfish est disponible 🎉"
+          description: |
+            Version `v${{ steps.version.outputs.VERSION }}` publiée.
+
+            - 📥 Téléchargements: Android (APK) et Windows (Installateur)
+            - 📝 Notes de version: disponibles sur la page de release
+            - 🔄 Mise à jour manuelle: ouvrez Paramètres → Mises à jour puis appuyez sur « Mettre à jour ».
+
+            Lien direct: [Ouvrir la release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }})
+          color: 0x00A4DC
 
