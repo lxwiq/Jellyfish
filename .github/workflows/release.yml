@@ -130,6 +130,7 @@ jobs:
     name: Create GitHub Release
     needs: [build-android, build-windows]
     runs-on: ubuntu-latest
+    environment: jellyfish
     permissions:
       contents: write
     
