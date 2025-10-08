@@ -461,6 +461,177 @@ class JellyfinService {
     }
   }
 
+  /// Recherche globale avec filtres avancés
+  Future<BaseItemDtoQueryResult> searchItems(
+    String userId, {
+    String? searchTerm,
+    List<BaseItemKind>? includeItemTypes,
+    List<String>? genres,
+    List<String>? studios,
+    List<String>? tags,
+    List<int>? years,
+    double? minRating,
+    bool? isFavorite,
+    bool? isUnplayed,
+    List<ItemSortBy>? sortBy,
+    List<SortOrder>? sortOrder,
+    int? limit,
+  }) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.itemsGet(
+        userId: userId,
+        searchTerm: searchTerm,
+        includeItemTypes: includeItemTypes,
+        genres: genres,
+        studios: studios,
+        tags: tags,
+        years: years,
+        minCommunityRating: minRating,
+        isFavorite: isFavorite,
+        isPlayed: isUnplayed != null ? !isUnplayed : null,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        recursive: true,
+        limit: limit ?? 100,
+        enableUserData: true,
+        enableImages: true,
+        imageTypeLimit: 1,
+        fields: [
+          ItemFields.overview,
+          ItemFields.genres,
+          ItemFields.studios,
+          ItemFields.tags,
+          ItemFields.primaryimageaspectratio,
+        ],
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!;
+      }
+      return BaseItemDtoQueryResult(items: [], totalRecordCount: 0);
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la recherche', error: e);
+      return BaseItemDtoQueryResult(items: [], totalRecordCount: 0);
+    }
+  }
+
+  /// Récupère tous les genres disponibles
+  Future<List<BaseItemDto>> getGenres(String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.genresGet(
+        userId: userId,
+        limit: 100,
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!.items ?? [];
+      }
+      return [];
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la récupération des genres', error: e);
+      return [];
+    }
+  }
+
+  /// Récupère tous les studios disponibles
+  Future<List<BaseItemDto>> getStudios(String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.studiosGet(
+        userId: userId,
+        limit: 100,
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!.items ?? [];
+      }
+      return [];
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la récupération des studios', error: e);
+      return [];
+    }
+  }
+
+  /// Récupère tous les tags disponibles
+  Future<Set<String>> getTags(String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      // Récupérer un échantillon d'items pour extraire les tags
+      final response = await _api!.itemsGet(
+        userId: userId,
+        recursive: true,
+        limit: 500,
+        fields: [ItemFields.tags],
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        final tagsSet = <String>{};
+
+        for (final item in response.body!.items ?? []) {
+          if (item.tags != null) {
+            tagsSet.addAll(item.tags!);
+          }
+        }
+
+        return tagsSet;
+      }
+
+      return {};
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la récupération des tags', error: e);
+      return {};
+    }
+  }
+
+  /// Récupère toutes les années disponibles
+  Future<List<int>> getYears(String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.yearsGet(
+        userId: userId,
+        limit: 100,
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        final years = response.body!.items
+            ?.map((item) {
+              final name = item.name;
+              if (name != null) {
+                return int.tryParse(name);
+              }
+              return null;
+            })
+            .where((year) => year != null)
+            .cast<int>()
+            .toList() ?? [];
+
+        return years;
+      }
+
+      return [];
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la récupération des années', error: e);
+      return [];
+    }
+  }
+
   /// Récupère les détails complets d'un item
   Future<BaseItemDto?> getItemDetails(String userId, String itemId) async {
     if (_api == null) {

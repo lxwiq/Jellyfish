@@ -8,6 +8,7 @@ import '../../services/download_toast_service.dart';
 import '../settings/settings_screen.dart';
 import '../downloads/downloads_screen.dart';
 import '../jellyseerr/jellyseerr_screen.dart';
+import '../search/global_search_screen.dart';
 import '../../widgets/active_downloads_modal.dart';
 import 'widgets/home_hero_carousel.dart';
 import 'widgets/continue_watching_section.dart';
@@ -126,6 +127,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               ],
             ),
             actions: [
+              // Bouton de recherche
+              IconButton(
+                icon: const Icon(IconsaxPlusLinear.search_normal),
+                color: AppColors.text4,
+                tooltip: 'Recherche',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const GlobalSearchScreen(),
+                    ),
+                  );
+                },
+              ),
               // Bouton de rafraîchissement (visible sur desktop)
               if (isDesktop)
                 IconButton(
