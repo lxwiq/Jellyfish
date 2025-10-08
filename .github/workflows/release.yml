@@ -3,14 +3,26 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Déclenche sur les tags comme v1.0.0, v1.2.3, etc.
+      - '*.*.*'  # Déclenche sur les tags comme 1.0.0, 1.2.3, etc.
 
 jobs:
+  validate:
+    name: Validate tag format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure tag matches X.x.x
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag '${GITHUB_REF_NAME}' must match X.x.x (e.g., 1.2.3).";
+            exit 1;
+          fi
+
   # ========== BUILD ANDROID ==========
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
-    
+    needs: validate
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,6 +75,7 @@ jobs:
   build-web:
     name: Build Web Version
     runs-on: ubuntu-latest
+    needs: validate
 
     steps:
       - name: Checkout code
@@ -90,7 +103,8 @@ jobs:
   build-windows:
     name: Build Windows Installer
     runs-on: windows-latest
-    
+    needs: validate
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -114,7 +128,7 @@ jobs:
       - name: Update version in installer script
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
+          $version = "${{ github.ref_name }}"
           (Get-Content windows/installer.iss) -replace '#define MyAppVersion ".*"', "#define MyAppVersion `"$version`"" | Set-Content windows/installer.iss
 
       - name: List build directory (debug)
@@ -137,7 +151,7 @@ jobs:
       - name: Rename Installer
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
+          $version = "${{ github.ref_name }}"
           $installerFiles = Get-ChildItem -Path "build\windows\installer\JellyfishSetup-*.exe"
           if ($installerFiles) {
             Move-Item $installerFiles[0].FullName "build\windows\installer\JellyfishSetup-$version.exe" -Force
@@ -155,7 +169,7 @@ jobs:
   # ========== DEPLOY WEB ==========
   deploy-web:
     name: Deploy to GitHub Pages
-    needs: build-web
+    needs: [validate, build-web]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -181,17 +195,18 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
+
   # ========== CREATE RELEASE ==========
   create-release:
     name: Create GitHub Release
-    needs: [build-android, build-windows, build-web]
+    needs: [validate, build-android, build-windows, build-web]
     runs-on: ubuntu-latest
     environment: jellyfish
     permissions:
       contents: write
       pages: write
       id-token: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -222,14 +237,14 @@ jobs:
 
       - name: Extract version
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Jellyfish v${{ steps.version.outputs.VERSION }}
+          name: Jellyfish ${{ steps.version.outputs.VERSION }}
           body: |
-            ## 🎉 Jellyfish v${{ steps.version.outputs.VERSION }}
+            ## 🎉 Jellyfish ${{ steps.version.outputs.VERSION }}
 
             ### 📥 Téléchargements
 
@@ -267,7 +282,7 @@ jobs:
           nodetail: true
           title: "Une nouvelle version de Jellyfish est disponible 🎉"
           description: |
-            Version `v${{ steps.version.outputs.VERSION }}` publiée.
+            Version `${{ steps.version.outputs.VERSION }}` publiée.
 
             - 📥 **Téléchargements**: Android (APK), Windows (Installateur) et Web
             - 🌐 **Version Web**: [https://lxwiq.github.io/Jellyfish/](https://lxwiq.github.io/Jellyfish/)
@@ -275,7 +290,7 @@ jobs:
             - 🔄 **Mise à jour manuelle**: ouvrez Paramètres → Mises à jour puis appuyez sur « Mettre à jour »
 
             **Liens directs**:
-            - [📦 Télécharger la release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.VERSION }})
+            - [📦 Télécharger la release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.VERSION }})
             - [🌐 Ouvrir la version Web](https://lxwiq.github.io/Jellyfish/)
           color: 0x00A4DC
 
