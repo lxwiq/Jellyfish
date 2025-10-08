@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 
 import 'services_provider.dart';
 import 'settings_provider.dart';
@@ -128,8 +128,8 @@ class VideoPlayerNotifier extends StateNotifier<VideoPlayerState> {
     final settingsAsync = ref.read(appSettingsProvider);
     final settings = settingsAsync.value;
 
-    // Déterminer si on utilise HLS
-    final shouldUseHls = kIsWeb ? true : (useHls ?? settings?.video.useHls ?? false);
+    // Déterminer si on utilise HLS selon la préférence (même sur Web)
+    final shouldUseHls = useHls ?? (settings?.video.useHls ?? false);
 
     // Si les index ne sont pas spécifiés, utiliser les préférences
     final finalAudioIndex = audioStreamIndex ??
