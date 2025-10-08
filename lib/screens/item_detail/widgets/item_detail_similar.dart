@@ -4,6 +4,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../providers/item_detail_provider.dart';
 import '../../../widgets/card_constants.dart';
+import '../../../widgets/horizontal_carousel.dart';
 import '../../home/widgets/poster_card.dart';
 
 /// Widget affichant les items similaires
@@ -52,23 +53,16 @@ class ItemDetailSimilar extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
+            HorizontalCarousel(
               height: sectionHeight,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: items.length,
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: PosterCard(
-                      item: item,
-                      isDesktop: isDesktop,
-                      isTablet: isTablet,
-                    ),
-                  );
-                },
-              ),
+              spacing: 12,
+              children: items.map((item) {
+                return PosterCard(
+                  item: item,
+                  isDesktop: isDesktop,
+                  isTablet: isTablet,
+                );
+              }).toList(),
             ),
           ],
         );

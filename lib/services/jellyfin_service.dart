@@ -510,6 +510,67 @@ class JellyfinService {
     }
   }
 
+  /// Récupère les détails d'une personne (acteur, réalisateur, etc.)
+  Future<BaseItemDto?> getPersonDetails(String personId, String userId) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.itemsItemIdGet(
+        userId: userId,
+        itemId: personId,
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!;
+      }
+      return null;
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la recuperation des details de la personne', error: e);
+      return null;
+    }
+  }
+
+  /// Récupère les items dans lesquels une personne apparaît
+  Future<List<BaseItemDto>> getItemsByPerson(
+    String userId,
+    String personId, {
+    int limit = 50,
+  }) async {
+    if (_api == null) {
+      throw Exception('Client API non initialisé');
+    }
+
+    try {
+      final response = await _api!.itemsGet(
+        userId: userId,
+        personIds: [personId],
+        recursive: true,
+        includeItemTypes: [BaseItemKind.movie, BaseItemKind.series, BaseItemKind.episode],
+        sortBy: [ItemSortBy.premieredate, ItemSortBy.productionyear],
+        sortOrder: [SortOrder.descending],
+        limit: limit,
+        enableUserData: true,
+        enableImages: true,
+        imageTypeLimit: 1,
+        fields: [
+          ItemFields.overview,
+          ItemFields.genres,
+          ItemFields.primaryimageaspectratio,
+        ],
+      );
+
+      if (response.isSuccessful && response.body != null) {
+        return response.body!.items ?? [];
+      }
+      return [];
+    } catch (e) {
+      await LoggerService.instance.error('Erreur lors de la recuperation des items de la personne', error: e);
+      return [];
+    }
+  }
+
   /// Récupère les saisons d'une série
   Future<List<BaseItemDto>> getSeasons(String seriesId, String userId) async {
     if (_api == null) {

@@ -6,6 +6,8 @@ import '../../../theme/app_colors.dart';
 import '../../../jellyfin/jellyfin_open_api.swagger.dart';
 import '../../../providers/services_provider.dart';
 import '../../../services/custom_cache_manager.dart';
+import '../../../widgets/horizontal_carousel.dart';
+import '../../person_detail/person_detail_screen.dart';
 
 /// Widget affichant le casting d'un item
 class ItemDetailCast extends ConsumerWidget {
@@ -47,16 +49,12 @@ class ItemDetailCast extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 16),
-        SizedBox(
+        HorizontalCarousel(
           height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: actors.length,
-            itemBuilder: (context, index) {
-              final person = actors[index];
-              return _CastCard(person: person);
-            },
-          ),
+          spacing: 12,
+          children: actors.map((person) {
+            return _CastCard(person: person);
+          }).toList(),
         ),
       ],
     );
@@ -79,44 +77,67 @@ class _CastCard extends ConsumerWidget {
           )
         : null;
 
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Photo
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: person.id != null
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => PersonDetailScreen(
+                    personId: person.id!,
+                    personName: person.name,
                   ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: imageUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        memCacheWidth: 200,
-                        cacheManager: CustomCacheManager(),
-                        placeholder: (context, url) => Container(
-                          color: AppColors.surface1,
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.jellyfinPurple,
-                              strokeWidth: 2,
+                ),
+              );
+            }
+          : null,
+      child: Container(
+        width: 120,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Photo
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: imageUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          memCacheWidth: 200,
+                          cacheManager: CustomCacheManager(),
+                          placeholder: (context, url) => Container(
+                            color: AppColors.surface1,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.jellyfinPurple,
+                                strokeWidth: 2,
+                              ),
                             ),
                           ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.surface1,
+                            child: const Center(
+                              child: Icon(
+                                IconsaxPlusLinear.user,
+                                size: 40,
+                                color: AppColors.text3,
+                              ),
+                            ),
+                          ),
+                        )
+                      : Container(
                           color: AppColors.surface1,
                           child: const Center(
                             child: Icon(
@@ -126,42 +147,32 @@ class _CastCard extends ConsumerWidget {
                             ),
                           ),
                         ),
-                      )
-                    : Container(
-                        color: AppColors.surface1,
-                        child: const Center(
-                          child: Icon(
-                            IconsaxPlusLinear.user,
-                            size: 40,
-                            color: AppColors.text3,
-                          ),
-                        ),
-                      ),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          // Nom
-          Text(
-            person.name ?? 'Inconnu',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.text5,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          // Rôle
-          if (person.role != null && person.role!.isNotEmpty)
+            const SizedBox(height: 8),
+            // Nom
             Text(
-              person.role!,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.text3,
+              person.name ?? 'Inconnu',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AppColors.text5,
               ),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-        ],
+            // Rôle
+            if (person.role != null && person.role!.isNotEmpty)
+              Text(
+                person.role!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.text3,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
       ),
     );
   }

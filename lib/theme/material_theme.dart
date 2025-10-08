@@ -9,7 +9,10 @@ class JellyfishMaterialTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      
+
+      // Police par défaut
+      fontFamily: 'Fira Mono',
+
       // Schéma de couleurs personnalisé
       colorScheme: const ColorScheme.dark(
         primary: AppColors.jellyfinPurple,

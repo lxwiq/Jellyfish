@@ -103,3 +103,27 @@ final nextUpEpisodeForSeriesProvider = FutureProvider.family<BaseItemDto?, Strin
     return null;
   }
 });
+
+/// Provider pour les détails d'une personne (acteur, réalisateur, etc.)
+final personDetailProvider = FutureProvider.family<BaseItemDto?, String>((ref, personId) async {
+  final authState = ref.watch(authStateProvider);
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (authState.user == null || !jellyfinService.isInitialized) {
+    return null;
+  }
+
+  return await jellyfinService.getPersonDetails(personId, authState.user!.id);
+});
+
+/// Provider pour les items dans lesquels une personne apparaît
+final personItemsProvider = FutureProvider.family<List<BaseItemDto>, String>((ref, personId) async {
+  final authState = ref.watch(authStateProvider);
+  final jellyfinService = ref.watch(jellyfinServiceProvider);
+
+  if (authState.user == null || !jellyfinService.isInitialized) {
+    return [];
+  }
+
+  return await jellyfinService.getItemsByPerson(authState.user!.id, personId, limit: 50);
+});
