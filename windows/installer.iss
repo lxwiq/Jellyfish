@@ -2,7 +2,7 @@
 ; Ce script crée un installateur Windows professionnel pour l'application Jellyfish
 
 #define MyAppName "Jellyfish"
-#define MyAppVersion "0.2.5"
+#define MyAppVersion "0.2.6"
 #define MyAppPublisher "Jellyfish Team"
 #define MyAppURL "https://github.com/yourusername/jellyfish"
 #define MyAppExeName "jellyfish.exe"
